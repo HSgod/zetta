@@ -30,20 +30,25 @@ class HomeScreen extends StatelessWidget {
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 200,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.7,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = MockMediaService.popularMovies[index];
-                  return _MediaCard(item: item);
-                },
-                childCount: MockMediaService.popularMovies.length,
-              ),
+            sliver: SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = (constraints.crossAxisExtent / 200).ceil();
+                return SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.7,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = MockMediaService.popularMovies[index];
+                      return _MediaCard(item: item);
+                    },
+                    childCount: MockMediaService.popularMovies.length,
+                  ),
+                );
+              },
             ),
           ),
         ],
