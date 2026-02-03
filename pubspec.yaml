@@ -44,6 +44,7 @@ dependencies:
   flex_color_scheme: ^8.4.0
   flutter_dotenv: ^6.0.0
   shared_preferences: ^2.5.4
+  html: ^0.15.6
 
 dev_dependencies:
   flutter_test:
