@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,11 +22,13 @@ void main() async {
   );
 }
 
-class ZettaApp extends StatelessWidget {
+class ZettaApp extends ConsumerWidget {
   const ZettaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp.router(
       title: 'Zetta',
       debugShowCheckedModeBanner: false,
@@ -33,7 +36,7 @@ class ZettaApp extends StatelessWidget {
       // Temat Material Design 3
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode, // Dynamiczna zmiana
 
       // Konfiguracja GoRouter
       routerConfig: appRouter,

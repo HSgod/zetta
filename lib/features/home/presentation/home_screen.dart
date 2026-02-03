@@ -9,87 +9,52 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchQuery = ref.watch(searchQueryProvider);
     final trending = ref.watch(trendingProvider);
-    final searchResults = ref.watch(searchResultsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: searchQuery.isEmpty 
-          ? const Text('Zetta') 
-          : TextField(
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Szukaj filmów i seriali...',
-                border: InputBorder.none,
-              ),
-              onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
-            ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              if (searchQuery.isNotEmpty) {
-                ref.read(searchQueryProvider.notifier).update('');
-              } else {
-                // Tu można dodać ikonę wyszukiwania jeśli TextField byłby ukryty
-              }
-            },
-            icon: Icon(searchQuery.isEmpty ? Icons.search : Icons.close),
-          ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
-        ],
+        title: const Text('Zetta'),
+        centerTitle: false,
       ),
-      body: searchQuery.isEmpty 
-          ? _MediaGrid(asyncItems: trending, title: 'Popularne teraz')
-          : _MediaGrid(asyncItems: searchResults, title: 'Wyniki wyszukiwania'),
-    );
-  }
-}
-
-class _MediaGrid extends StatelessWidget {
-  final AsyncValue<List<MediaItem>> asyncItems;
-  final String title;
-
-  const _MediaGrid({required this.asyncItems, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return asyncItems.when(
-      data: (items) => CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      body: trending.when(
+        data: (items) => CustomScrollView(
+          slivers: [
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Popularne teraz',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = (constraints.crossAxisExtent / 150).floor().clamp(2, 6);
-                return SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.65,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _MediaCard(item: items[index]),
-                    childCount: items.length,
-                  ),
-                );
-              },
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = (constraints.crossAxisExtent / 150).floor().clamp(2, 6);
+                  return SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.65,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _MediaCard(item: items[index]),
+                      childCount: items.length,
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+            // Padding na dole, żeby content nie chował się za navbarem
+            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Błąd: $err')),
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Błąd: $err')),
     );
   }
 }
@@ -129,16 +94,6 @@ class _MediaCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 12, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(
-                        item.rating?.toStringAsFixed(1) ?? 'N/A',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
-                      ),
-                    ],
                   ),
                 ],
               ),
