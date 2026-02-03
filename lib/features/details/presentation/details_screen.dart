@@ -38,6 +38,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     
     try {
       final scraper = ref.read(scraperServiceProvider);
+      
       final sources = await scraper.findStream(
         widget.item.title,
         season: season,

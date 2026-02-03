@@ -45,6 +45,7 @@ dependencies:
   flutter_dotenv: ^6.0.0
   shared_preferences: ^2.5.4
   html: ^0.15.6
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:
