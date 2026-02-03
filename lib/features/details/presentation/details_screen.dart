@@ -76,34 +76,78 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   void _showSourcePicker(List<VideoSource> sources) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
                 Text(
-                  'Wybierz źródło',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  'Wybierz źródło wideo',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Flexible(
-                  child: ListView.builder(
+                  child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: sources.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
                     itemBuilder: (context, index) {
                       final source = sources[index];
                       return ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.language),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          child: Icon(
+                            source.sourceName.toLowerCase().contains('ekino') 
+                              ? Icons.movie_filter 
+                              : Icons.language,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
                         ),
-                        title: Text(source.title),
-                        subtitle: Text('${source.sourceName} • Jakość: ${source.quality}'),
-                        trailing: const Icon(Icons.play_arrow),
+                        title: Text(
+                          source.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Row(
+                          children: [
+                            Text(
+                              source.sourceName,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('•'),
+                            const SizedBox(width: 8),
+                            Text('Jakość: ${source.quality}'),
+                          ],
+                        ),
+                        trailing: Icon(
+                          Icons.play_circle_fill,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 32,
+                        ),
                         onTap: () {
                           Navigator.pop(context);
                           _navigateToPlayer(source);
