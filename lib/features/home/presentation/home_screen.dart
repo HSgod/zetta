@@ -74,6 +74,9 @@ class _MediaCard extends StatelessWidget {
                       item.posterUrl!,
                       fit: BoxFit.cover,
                       width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                      ),
                     )
                   : const Center(child: Icon(Icons.movie, size: 50)),
             ),

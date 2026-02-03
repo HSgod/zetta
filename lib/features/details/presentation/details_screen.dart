@@ -31,6 +31,10 @@ class DetailsScreen extends StatelessWidget {
                     Image.network(
                       item.posterUrl!,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        child: const Icon(Icons.broken_image, size: 100),
+                      ),
                     )
                   else
                     Container(color: Theme.of(context).colorScheme.primaryContainer),
