@@ -18,10 +18,8 @@ class ObejrzyjToScraper extends BaseScraper {
 
   @override
   Future<List<SearchResult>> search(String title) async {
-    // Próba zgadnięcia endpointu wyszukiwarki. 
-    // Często jest to /szukaj?q=... lub /wyszukiwarka?phrase=...
-    // Spróbujmy standardowego query.
-    final searchUrl = '$_baseUrl/szukaj?q=${Uri.encodeComponent(title)}';
+    // Poprawny format adresu wyszukiwarki: /search/tytul
+    final searchUrl = '$_baseUrl/search/${Uri.encodeComponent(title.toLowerCase())}';
     print('[$name] Searching: $searchUrl');
 
     try {
