@@ -21,6 +21,12 @@ class VideoSource {
   final String url;
   final String quality; // np. "1080p", "720p"
   final Map<String, String>? headers; // Np. Referer, User-Agent
+  final bool isWebView; // Czy źródło wymaga otwarcia w WebView (np. trudny player)
 
-  VideoSource({required this.url, required this.quality, this.headers});
+  VideoSource({
+    required this.url,
+    required this.quality,
+    this.headers,
+    this.isWebView = false,
+  });
 }
