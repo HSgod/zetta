@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/presentation/providers/search_provider.dart';
+import '../../home/presentation/widgets/media_card.dart';
 
 class SearchScreen extends ConsumerWidget {
   const SearchScreen({super.key});
@@ -46,26 +47,18 @@ class SearchScreen extends ConsumerWidget {
                 if (items.isEmpty) {
                   return const Center(child: Text('Brak wyników'));
                 }
-                return ListView.builder(
+                // Używamy siatki zamiast listy, tak jak na Home
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 150,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.65,
+                  ),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      leading: item.posterUrl != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: Image.network(
-                                item.posterUrl!,
-                                width: 40,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_,__,___) => const Icon(Icons.movie),
-                              ),
-                            )
-                          : const Icon(Icons.movie),
-                      title: Text(item.title),
-                      subtitle: Text(item.releaseDate ?? 'Brak daty'),
-                      onTap: () => context.push('/details', extra: item),
-                    );
+                    return MediaCard(item: items[index]);
                   },
                 );
               },
