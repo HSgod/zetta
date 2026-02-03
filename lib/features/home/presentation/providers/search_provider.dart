@@ -10,8 +10,19 @@ final trendingProvider = FutureProvider<List<MediaItem>>((ref) async {
   return service.getTrending();
 });
 
-// Stan wyszukiwania
-final searchQueryProvider = StateProvider<String>((ref) => '');
+// Stan wyszukiwania (zaimplementowany jako Notifier)
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() {
+    return '';
+  }
+
+  void update(String query) {
+    state = query;
+  }
+}
+
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
 
 // Provider wyników wyszukiwania
 final searchResultsProvider = FutureProvider<List<MediaItem>>((ref) async {
@@ -22,6 +33,5 @@ final searchResultsProvider = FutureProvider<List<MediaItem>>((ref) async {
     return [];
   }
   
-  // Mały debouncing (opcjonalnie, ale tu zrobimy prosto)
   return service.search(query);
 });

@@ -23,13 +23,13 @@ class HomeScreen extends ConsumerWidget {
                 hintText: 'Szukaj filmów i seriali...',
                 border: InputBorder.none,
               ),
-              onChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
+              onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
             ),
         actions: [
           IconButton(
             onPressed: () {
               if (searchQuery.isNotEmpty) {
-                ref.read(searchQueryProvider.notifier).state = '';
+                ref.read(searchQueryProvider.notifier).update('');
               } else {
                 // Tu można dodać ikonę wyszukiwania jeśli TextField byłby ukryty
               }
