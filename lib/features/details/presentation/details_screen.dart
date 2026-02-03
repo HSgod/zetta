@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../player/presentation/player_args.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/domain/episode.dart';
 import '../../home/presentation/providers/search_provider.dart';
+import '../../../core/scraper/scraper_service.dart';
+import '../../player/presentation/player_args.dart';
 
 // Provider dla detali serialu (liczba sezonów)
 final tvDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) async {
@@ -30,6 +31,41 @@ class DetailsScreen extends ConsumerStatefulWidget {
 
 class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   int _selectedSeason = 1;
+  bool _isLoading = false;
+
+  Future<void> _playMedia({int? season, int? episode}) async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final scraper = ref.read(scraperServiceProvider);
+      final sources = await scraper.findStream(
+        widget.item.title,
+        season: season,
+        episode: episode,
+      );
+
+      if (sources.isNotEmpty && mounted) {
+        context.push('/player', extra: PlayerArgs(
+          item: widget.item, 
+          videoUrl: sources.first.url,
+        ));
+      } else {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nie znaleziono źródeł wideo.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Błąd: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +74,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // AppBar z plakatem (bez zmian)
           SliverAppBar.large(
             expandedHeight: 400,
             pinned: true,
@@ -78,7 +113,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ),
           ),
           
-          // Opis i detale
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -114,74 +148,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-import '../../core/scraper/scraper_service.dart';
-import '../../player/presentation/video_player_screen.dart'; // Import playera (jeśli potrzebny do push, ale router lepszy)
-
-// ...
-
-class _DetailsScreenState extends ConsumerState<DetailsScreen> {
-  int _selectedSeason = 1;
-  bool _isLoading = false;
-
-  Future<void> _playMedia({int? season, int? episode}) async {
-    setState(() => _isLoading = true);
-    
-    try {
-      final scraper = ref.read(scraperServiceProvider);
-      // Przekazujemy tytuł i opcjonalnie dane odcinka
-      final sources = await scraper.findStream(
-        widget.item.title,
-        season: season,
-        episode: episode,
-      );
-
-      if (sources.isNotEmpty && mounted) {
-        // Mamy źródło! Przekazujemy je do playera
-        // Musimy zmienić router/player, aby przyjmował VideoSource, a nie MediaItem
-        // Na razie zróbmy "brzydki" hack przekazując URL w extra playera, 
-        // ale docelowo zmienimy model argumentów Playera.
-        
-        // Zamiast pushować MediaItem, musimy zmodyfikować VideoPlayerScreen.
-        // Zróbmy to w następnym kroku. Na razie wyświetlmy SnackBar.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Znaleziono: ${sources.first.url}')),
-        );
-        
-import '../../player/presentation/player_args.dart'; // Dodaj na górze
-
-// ... w _playMedia ...
-        // Otwieramy player z znalezionym linkiem
-        context.push('/player', extra: PlayerArgs(
-          item: widget.item, 
-          videoUrl: sources.first.url
-        ));
-      } else {
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nie znaleziono źródeł wideo.')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Błąd: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // ...
-                  // Przyciski akcji
                   if (isMovie)
                     FilledButton.icon(
                       onPressed: _isLoading ? null : () => _playMedia(),
                       icon: _isLoading 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.play_arrow),
                       label: Text(_isLoading ? 'Szukam źródeł...' : 'Odtwórz Film'),
                       style: FilledButton.styleFrom(
@@ -189,23 +160,14 @@ import '../../player/presentation/player_args.dart'; // Dodaj na górze
                       ),
                     )
                   else
-    // ...
-    // W _buildEpisodeList podmieniamy onTap:
-                trailing: const Icon(Icons.play_circle_outline),
-                onTap: _isLoading ? null : () {
-                  _playMedia(season: _selectedSeason, episode: episode.episodeNumber);
-                },
-    // ...
                     _buildSeasonSelector(),
                 ],
               ),
             ),
           ),
 
-          // Lista odcinków (tylko dla seriali)
           if (!isMovie) _buildEpisodeList(),
           
-          // Padding na dole
           const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
         ],
       ),
@@ -218,7 +180,6 @@ import '../../player/presentation/player_args.dart'; // Dodaj na górze
     return tvDetails.when(
       data: (data) {
         final seasons = data['seasons'] as List;
-        // Filtrujemy sezon 0 (specjalne), chyba że użytkownik chce (na razie pomińmy)
         final regularSeasons = seasons.where((s) => s['season_number'] > 0).toList();
 
         if (regularSeasons.isEmpty) return const SizedBox.shrink();
@@ -278,10 +239,16 @@ import '../../player/presentation/player_args.dart'; // Dodaj na górze
                       )
                     : const Icon(Icons.tv),
                 title: Text('${episode.episodeNumber}. ${episode.name}'),
-                subtitle: Text(episode.overview != null && episode.overview!.isNotEmpty 
+                subtitle: Text(
+                  episode.overview != null && episode.overview!.isNotEmpty 
                     ? episode.overview! 
-                    : 'Brak opisu odcinka'),
-                trailing: const Icon(Icons.play_circle_outline),
+                    : 'Brak opisu odcinka',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: _isLoading 
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.play_circle_outline),
                 onTap: _isLoading ? null : () {
                   _playMedia(season: _selectedSeason, episode: episode.episodeNumber);
                 },

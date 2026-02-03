@@ -5,6 +5,7 @@ import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/details/presentation/details_screen.dart';
 import '../../features/player/presentation/video_player_screen.dart';
+import '../../features/player/presentation/player_args.dart';
 import '../../features/home/domain/media_item.dart';
 import 'scaffold_with_navbar.dart';
 
@@ -17,13 +18,11 @@ final appRouter = GoRouter(
   initialLocation: '/',
   navigatorKey: _rootNavigatorKey,
   routes: [
-    // StatefulShellRoute utrzymuje stan zakładek
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return ScaffoldWithNavBar(navigationShell: navigationShell);
       },
       branches: [
-        // Zakładka 1: Home
         StatefulShellBranch(
           navigatorKey: _shellNavigatorHomeKey,
           routes: [
@@ -33,7 +32,6 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // Zakładka 2: Search
         StatefulShellBranch(
           navigatorKey: _shellNavigatorSearchKey,
           routes: [
@@ -43,7 +41,6 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // Zakładka 3: Settings
         StatefulShellBranch(
           navigatorKey: _shellNavigatorSettingsKey,
           routes: [
@@ -55,7 +52,6 @@ final appRouter = GoRouter(
         ),
       ],
     ),
-    // Ekrany pełnoekranowe (poza dolnym paskiem nawigacji)
     GoRoute(
       parentNavigatorKey: _rootNavigatorKey,
       path: '/details',
@@ -64,9 +60,6 @@ final appRouter = GoRouter(
         return DetailsScreen(item: item);
       },
     ),
-import '../../features/player/presentation/player_args.dart';
-
-// ... (wewnątrz appRouter)
     GoRoute(
       parentNavigatorKey: _rootNavigatorKey,
       path: '/player',
