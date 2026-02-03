@@ -19,7 +19,7 @@ class AppTheme {
     visualDensity: FlexColorScheme.comfortablePlatformDensity,
     useMaterial3: true,
     swapLegacyOnMaterial3: true,
-    fontFamily: GoogleFonts.notoSans().fontFamily,
+    fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
   );
 
   static ThemeData dark = FlexThemeData.dark(
@@ -36,6 +36,6 @@ class AppTheme {
     visualDensity: FlexColorScheme.comfortablePlatformDensity,
     useMaterial3: true,
     swapLegacyOnMaterial3: true,
-    fontFamily: GoogleFonts.notoSans().fontFamily,
+    fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
   );
 }

@@ -64,12 +64,15 @@ final appRouter = GoRouter(
         return DetailsScreen(item: item);
       },
     ),
+import '../../features/player/presentation/player_args.dart';
+
+// ... (wewnątrz appRouter)
     GoRoute(
       parentNavigatorKey: _rootNavigatorKey,
       path: '/player',
       builder: (context, state) {
-        final item = state.extra as MediaItem;
-        return VideoPlayerScreen(item: item);
+        final args = state.extra as PlayerArgs;
+        return VideoPlayerScreen(args: args);
       },
     ),
   ],

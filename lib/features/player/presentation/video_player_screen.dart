@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import '../../home/domain/media_item.dart';
+import 'player_args.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
-  final MediaItem item;
+  final PlayerArgs args;
 
-  const VideoPlayerScreen({super.key, required this.item});
+  const VideoPlayerScreen({super.key, required this.args});
 
   @override
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -19,13 +19,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // Inicjalizacja playera
     player = Player();
     controller = VideoController(player);
 
-    // Na razie użyjemy testowego wideo (Big Buck Bunny), bo nie mamy jeszcze scrapera
-    player.open(Media('https://user-images.githubusercontent.com/28951144/229373695-22f88f13-d18f-4288-9bf1-c3e078d83722.mp4'));
+    // Otwieramy URL przekazany ze scrapera
+    player.open(Media(widget.args.videoUrl));
   }
 
   @override
@@ -39,14 +37,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(widget.item.title),
+        title: Text(widget.args.item.title),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
       ),
       body: Center(
         child: Video(
           controller: controller,
-          controls: MaterialVideoControls, // Używamy domyślnych kontrolek Material
+          controls: MaterialVideoControls,
         ),
       ),
     );
