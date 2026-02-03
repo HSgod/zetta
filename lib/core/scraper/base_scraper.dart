@@ -6,7 +6,7 @@ abstract class BaseScraper {
   Future<List<SearchResult>> search(String title);
 
   // Metoda wyciągająca linki do wideo z konkretnej podstrony
-  Future<List<VideoSource>> getSources(String url);
+  Future<List<VideoSource>> getSources(SearchResult result);
 }
 
 class SearchResult {
@@ -19,13 +19,17 @@ class SearchResult {
 
 class VideoSource {
   final String url;
+  final String title; // Tytuł ze strony źródłowej
   final String quality; // np. "1080p", "720p"
+  final String sourceName; // Nazwa scrapera (np. Ekino-TV)
   final Map<String, String>? headers; // Np. Referer, User-Agent
   final bool isWebView; // Czy źródło wymaga otwarcia w WebView (np. trudny player)
 
   VideoSource({
     required this.url,
+    required this.title,
     required this.quality,
+    required this.sourceName,
     this.headers,
     this.isWebView = false,
   });

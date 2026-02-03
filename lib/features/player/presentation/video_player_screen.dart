@@ -156,45 +156,123 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             (function() {
               window.hCaptchaCallback = function() { console.log('JS: CF Callback'); };
 
-              function tryClick() {
-                var btn = document.querySelector('.buttonprch') || 
-                          document.querySelector('.warning-msg a') ||
-                          document.querySelector('a[href*="play.ekino.link"]');
+                                          function tryClick() {
 
-                if (btn) {
-                  if (window._zettaDone) return;
-                  window._zettaDone = true;
-                  
-                  btn.target = "_self";
-                  btn.scrollIntoView({behavior: 'instant', block: 'center'});
+                                            var btn = document.querySelector('.buttonprch') || 
 
-                  setTimeout(function() {
-                    btn.focus();
-                    btn.click();
-                    ['mousedown', 'mouseup'].forEach(function(t) {
-                      btn.dispatchEvent(new MouseEvent(t, {view: window, bubbles: true, cancelable: true, buttons: 1}));
-                    });
-                  }, 1000);
-                  return;
-                }
+                                                      document.querySelector('.warning-msg a') ||
 
-                if (window.location.hostname.includes('ekino-tv.pl') && !window.location.href.includes('player')) {
-                  if (window._zettaInit) return;
+                                                      document.querySelector('a[href*="play.ekino.link"]') ||
 
-                  var players = document.querySelectorAll('.players li a');
-                  if (players.length > 0 && !players[0].parentElement.classList.contains('active')) {
-                    players[0].click();
-                    return;
-                  }
+                                                      document.querySelector('.vjs-big-play-button') ||
 
-                  var img = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
-                  if (img) {
-                    window._zettaInit = true;
-                    img.click();
-                    if (img.parentElement && img.parentElement.tagName === 'A') img.parentElement.click();
-                  }
-                }
-              }
+                                                      document.querySelector('.play-button');
+
+                            
+
+                                            if (btn && btn.click) {
+
+                                              if (window._zettaDone) return;
+
+                                              window._zettaDone = true;
+
+                            
+
+                                              if (btn.tagName === 'A') btn.target = "_self";
+
+                                              if (btn.scrollIntoView) btn.scrollIntoView({behavior: 'instant', block: 'center'});
+
+                            
+
+                                              setTimeout(function() {
+
+                                                if (btn.focus) btn.focus();
+
+                                                btn.click();
+
+                                                ['mousedown', 'mouseup'].forEach(function(t) {
+
+                                                  btn.dispatchEvent(new MouseEvent(t, {view: window, bubbles: true, cancelable: true, buttons: 1}));
+
+                                                });
+
+                                              }, 1000);
+
+                                              return;
+
+                                            }
+
+                            
+
+                                            // Logika dla obejrzyj.to
+
+                                            if (window.location.hostname.includes('obejrzyj.to')) {
+
+                                               var frames = document.getElementsByTagName('iframe');
+
+                                               for (var i = 0; i < frames.length; i++) {
+
+                                                  try {
+
+                                                    var fDoc = frames[i].contentDocument || frames[i].contentWindow.document;
+
+                                                    if (fDoc) {
+
+                                                      var play = fDoc.querySelector('.play-button, .vjs-big-play-button');
+
+                                                      if (play && play.click) play.click();
+
+                                                    }
+
+                                                  } catch(e) {}
+
+                                               }
+
+                                            }
+
+                            
+
+                                            if (window.location.hostname.includes('ekino-tv.pl') && !window.location.href.includes('player')) {  
+
+                                              if (window._zettaInit) return;
+
+                            
+
+                                              var players = document.querySelectorAll('.players li a');
+
+                                              if (players.length > 0) {
+
+                                                var p = players[0];
+
+                                                if (p.parentElement && !p.parentElement.classList.contains('active')) {
+
+                                                  p.click();
+
+                                                  return;
+
+                                                }
+
+                                              }
+
+                            
+
+                                              var img = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
+
+                                              if (img && img.click) {
+
+                                                window._zettaInit = true;
+
+                                                img.click();
+
+                                                if (img.parentElement && img.parentElement.tagName === 'A') img.parentElement.click();
+
+                                              }
+
+                                            }
+
+                                          }
+
+                            
               setInterval(tryClick, 2000);
             })();
           """,

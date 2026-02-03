@@ -6,6 +6,7 @@ import '../../home/domain/media_item.dart';
 import '../../home/domain/episode.dart';
 import '../../home/presentation/providers/search_provider.dart';
 import '../../../core/scraper/scraper_service.dart';
+import '../../../core/scraper/base_scraper.dart';
 import '../../player/presentation/player_args.dart';
 
 // Provider dla detali serialu (liczba sezonów)
@@ -46,14 +47,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
 
       if (sources.isNotEmpty && mounted) {
-        context.push('/player', extra: PlayerArgs(
-          item: widget.item, 
-          videoUrl: sources.first.url,
-        ));
+        _showSourcePicker(sources);
       } else {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nie znaleziono źródeł wideo.')),
+            const SnackBar(content: Text('Nie znaleziono aktywnych źródeł wideo.')),
           );
         }
       }
@@ -66,6 +64,60 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _navigateToPlayer(VideoSource source) {
+    context.push('/player', extra: PlayerArgs(
+      item: widget.item, 
+      videoUrl: source.url,
+    ));
+  }
+
+  void _showSourcePicker(List<VideoSource> sources) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Wybierz źródło',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: sources.length,
+                    itemBuilder: (context, index) {
+                      final source = sources[index];
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.language),
+                        ),
+                        title: Text(source.title),
+                        subtitle: Text('${source.sourceName} • Jakość: ${source.quality}'),
+                        trailing: const Icon(Icons.play_arrow),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _navigateToPlayer(source);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override

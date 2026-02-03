@@ -37,14 +37,31 @@ class EkinoScraper extends BaseScraper {
   }
 
   @override
-  Future<List<VideoSource>> getSources(String movieUrl) async {
-    // Zwracamy URL strony filmu. VideoPlayerScreen sam go "rozpracuje" w tle.
-    return [
-      VideoSource(
-        url: movieUrl,
-        quality: 'Auto',
-        isWebView: false, // Używamy natywnego playera, ale z ukrytym snifferem
-      )
-    ];
+  Future<List<VideoSource>> getSources(SearchResult result) async {
+    try {
+      final response = await http.get(Uri.parse(result.url));
+      if (response.statusCode == 200) {
+        var document = parse(response.body);
+        
+        bool hasPlayer = document.querySelector('.players') != null || 
+                         document.querySelector('img[src*="kliknij_aby_obejrzec"]') != null ||
+                         document.querySelector('.buttonprch') != null;
+
+        if (!hasPlayer) return [];
+
+        return [
+          VideoSource(
+            url: result.url,
+            title: result.title,
+            quality: 'Auto',
+            sourceName: name,
+            isWebView: false,
+          )
+        ];
+      }
+    } catch (e) {
+      print('[$name] Error verifying sources: $e');
+    }
+    return [];
   }
 }

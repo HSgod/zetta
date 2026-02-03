@@ -16,22 +16,39 @@ class ScraperService {
         ? '$cleanTitle S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}'
         : cleanTitle;
 
-    print('Searching for clean query: $query');
+    print('Searching for clean query: $query across all scrapers');
 
-    for (var scraper in _scrapers) {
+    List<VideoSource> allSources = [];
+    
+    // Szukamy równolegle we wszystkich scraperach
+    final results = await Future.wait(_scrapers.map((scraper) async {
       try {
-        final results = await scraper.search(query);
-        if (results.isNotEmpty) {
-          final sources = await scraper.getSources(results.first.url);
-          if (sources.isNotEmpty) {
-            return sources;
+        final searchResults = await scraper.search(query);
+        if (searchResults.isNotEmpty) {
+          // Filtrujemy wyniki, aby tytuł się zgadzał (unikanie np. "Pomoc" zamiast "Pomoc domowa")
+          final bestMatch = searchResults.firstWhere(
+            (r) => r.title.toLowerCase().contains(cleanTitle.toLowerCase()),
+            orElse: () => searchResults.first, // fallback do pierwszego jeśli filtr zawiedzie
+          );
+
+          if (!bestMatch.title.toLowerCase().contains(cleanTitle.toLowerCase())) {
+             print('[$scraper.name] Best match "${bestMatch.title}" seems unrelated to "$cleanTitle". Skipping.');
+             return <VideoSource>[];
           }
+
+          return await scraper.getSources(bestMatch);
         }
       } catch (e) {
         print('Error in scraper ${scraper.name}: $e');
       }
+      return <VideoSource>[];
+    }));
+
+    for (var sourceList in results) {
+      allSources.addAll(sourceList);
     }
-    return [];
+
+    return allSources;
   }
 }
 
