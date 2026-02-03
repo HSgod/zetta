@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'base_scraper.dart';
 import 'filman_scraper.dart';
+import 'obejrzyj_to_scraper.dart';
 
 class ScraperService {
   final List<BaseScraper> _scrapers = [
+    ObejrzyjToScraper(),
     FilmanScraper(),
   ];
 
