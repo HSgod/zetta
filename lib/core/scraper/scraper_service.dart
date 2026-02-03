@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'base_scraper.dart';
+import 'ekino_scraper.dart';
 import 'obejrzyj_to_scraper.dart';
 
 class ScraperService {
   final List<BaseScraper> _scrapers = [
+    EkinoScraper(),
     ObejrzyjToScraper(),
-    _MockScraper(), // Fallback
+    _MockScraper(),
   ];
 
   Future<List<VideoSource>> findStream(String title, {int? season, int? episode}) async {
