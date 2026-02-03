@@ -10,9 +10,15 @@ class ScraperService {
   ];
 
   Future<List<VideoSource>> findStream(String title, {int? season, int? episode}) async {
+    // Czyścimy tytuł: usuwamy dwukropki, myślniki i bierzemy pierwszy człon przed znakiem ":"
+    // Np. "F1: Film" stanie się "F1"
+    String cleanTitle = title.split(':').first.split('-').first.trim();
+    
     final query = season != null 
-        ? '$title S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}'
-        : title;
+        ? '$cleanTitle S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}'
+        : cleanTitle;
+
+    print('Searching for clean query: $query');
 
     for (var scraper in _scrapers) {
       try {
