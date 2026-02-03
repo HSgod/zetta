@@ -89,13 +89,47 @@ class EkinoScraper extends BaseScraper {
       onLoadStop: (controller, currentUrl) async {
         print('[$name] Page loaded. Stage: $stage');
         
-        if (stage == 0) {
-          await controller.evaluateJavascript(source: """
-            (async function() {
-              var players = document.querySelectorAll('.players li a');
-              if (players.length > 0) players[0].click();
-              await new Promise(r => setTimeout(r, 1000));
-              var startImg = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
+                if (stage == 0) {
+        
+                  await controller.evaluateJavascript(source: """
+        
+                    (async function() {
+        
+                      // 1. Wybór konkretnego playera o nazwie "player"
+        
+                      var playerLinks = document.querySelectorAll('.players li a');
+        
+                      var targetPlayer = Array.from(playerLinks).find(a => 
+        
+                        a.textContent.toLowerCase().trim() === 'player' || 
+        
+                        a.innerText.toLowerCase().trim() === 'player'
+        
+                      );
+        
+                      
+        
+                      if (targetPlayer) {
+        
+                        console.log('JS: Found target "player". Clicking...');
+        
+                        targetPlayer.click();
+        
+                      } else if (playerLinks.length > 0) {
+        
+                        console.log('JS: "player" not found, clicking first available...');
+        
+                        playerLinks[0].click();
+        
+                      }
+        
+                      
+        
+                      await new Promise(r => setTimeout(r, 1000));
+        
+        
+        
+                      var startImg = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
               if (startImg) { startImg.click(); if (startImg.parentElement) startImg.parentElement.click(); }
               for (var i = 0; i < 20; i++) {
                 await new Promise(r => setTimeout(r, 500));
