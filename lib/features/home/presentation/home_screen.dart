@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../data/mock_media_service.dart';
 import '../domain/media_item.dart';
 
@@ -62,7 +63,7 @@ class _MediaCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          // Tu wejdziemy w detale
+          context.push('/details', extra: item);
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
