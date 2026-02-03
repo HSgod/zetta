@@ -1,24 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../home/domain/media_item.dart';
+import '../../home/domain/episode.dart';
+import '../../home/presentation/providers/search_provider.dart';
 
-class DetailsScreen extends StatelessWidget {
+// Provider dla detali serialu (liczba sezonów)
+final tvDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) async {
+  final service = ref.watch(tmdbServiceProvider);
+  return service.getTVDetails(id);
+});
+
+// Provider dla odcinków konkretnego sezonu
+final seasonEpisodesProvider = FutureProvider.family<List<Episode>, ({String id, int season})>((ref, arg) async {
+  final service = ref.watch(tmdbServiceProvider);
+  return service.getSeasonEpisodes(arg.id, arg.season);
+});
+
+class DetailsScreen extends ConsumerStatefulWidget {
   final MediaItem item;
 
   const DetailsScreen({super.key, required this.item});
 
   @override
+  ConsumerState<DetailsScreen> createState() => _DetailsScreenState();
+}
+
+class _DetailsScreenState extends ConsumerState<DetailsScreen> {
+  int _selectedSeason = 1;
+
+  @override
   Widget build(BuildContext context) {
+    final isMovie = widget.item.type == MediaType.movie;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
+          // AppBar z plakatem (bez zmian)
           SliverAppBar.large(
             expandedHeight: 400,
             pinned: true,
             stretch: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                item.title,
+                widget.item.title,
                 style: const TextStyle(
                   color: Colors.white,
                   shadows: [Shadow(color: Colors.black, blurRadius: 10)],
@@ -27,25 +53,21 @@ class DetailsScreen extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (item.posterUrl != null)
+                  if (widget.item.posterUrl != null)
                     Image.network(
-                      item.posterUrl!,
+                      widget.item.posterUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Theme.of(context).colorScheme.surfaceVariant,
-                        child: const Icon(Icons.broken_image, size: 100),
-                      ),
+                      errorBuilder: (_,__,___) => Container(color: Colors.grey),
                     )
                   else
                     Container(color: Theme.of(context).colorScheme.primaryContainer),
                   
-                  // Gradient dla lepszej czytelności tekstu
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black54],
+                        colors: [Colors.transparent, Colors.black87],
                         stops: [0.6, 1.0],
                       ),
                     ),
@@ -54,6 +76,8 @@ class DetailsScreen extends StatelessWidget {
               ),
             ),
           ),
+          
+          // Opis i detale
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -63,16 +87,16 @@ class DetailsScreen extends StatelessWidget {
                   Row(
                     children: [
                       Chip(
-                        label: Text(item.type == MediaType.movie ? 'Film' : 'Serial'),
+                        label: Text(isMovie ? 'Film' : 'Serial'),
                         avatar: Icon(
-                          item.type == MediaType.movie ? Icons.movie : Icons.tv,
+                          isMovie ? Icons.movie : Icons.tv,
                           size: 18,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (item.rating != null)
+                      if (widget.item.rating != null)
                         Chip(
-                          label: Text(item.rating.toString()),
+                          label: Text(widget.item.rating!.toStringAsFixed(1)),
                           avatar: const Icon(Icons.star, color: Colors.amber, size: 18),
                         ),
                     ],
@@ -84,26 +108,123 @@ class DetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    item.description ?? 'Brak opisu.',
+                    widget.item.description ?? 'Brak opisu.',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () {
-                      context.push('/player', extra: item);
-                    },
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Odtwórz teraz'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                  ),
+                  
+                  // Przyciski akcji (Dla filmu: Odtwórz, Dla serialu: Wybór sezonu)
+                  if (isMovie)
+                    FilledButton.icon(
+                      onPressed: () {
+                        context.push('/player', extra: widget.item);
+                      },
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Odtwórz Film'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                    )
+                  else
+                    _buildSeasonSelector(),
                 ],
               ),
             ),
           ),
+
+          // Lista odcinków (tylko dla seriali)
+          if (!isMovie) _buildEpisodeList(),
+          
+          // Padding na dole
+          const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
         ],
       ),
+    );
+  }
+
+  Widget _buildSeasonSelector() {
+    final tvDetails = ref.watch(tvDetailsProvider(widget.item.id));
+
+    return tvDetails.when(
+      data: (data) {
+        final seasons = data['seasons'] as List;
+        // Filtrujemy sezon 0 (specjalne), chyba że użytkownik chce (na razie pomińmy)
+        final regularSeasons = seasons.where((s) => s['season_number'] > 0).toList();
+
+        if (regularSeasons.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Sezony', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: _selectedSeason,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              items: regularSeasons.map<DropdownMenuItem<int>>((season) {
+                return DropdownMenuItem(
+                  value: season['season_number'],
+                  child: Text(season['name'] ?? 'Sezon ${season['season_number']}'),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedSeason = value;
+                  });
+                }
+              },
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Text('Błąd pobierania sezonów: $e'),
+    );
+  }
+
+  Widget _buildEpisodeList() {
+    final episodes = ref.watch(seasonEpisodesProvider((id: widget.item.id, season: _selectedSeason)));
+
+    return episodes.when(
+      data: (episodeList) {
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final episode = episodeList[index];
+              return ListTile(
+                leading: episode.stillPath != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(
+                          '${dotenv.env['TMDB_IMAGE_BASE_URL']}${episode.stillPath}',
+                          width: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_,__,___) => const Icon(Icons.tv),
+                        ),
+                      )
+                    : const Icon(Icons.tv),
+                title: Text('${episode.episodeNumber}. ${episode.name}'),
+                subtitle: Text(episode.overview != null && episode.overview!.isNotEmpty 
+                    ? episode.overview! 
+                    : 'Brak opisu odcinka'),
+                trailing: const Icon(Icons.play_circle_outline),
+                onTap: () {
+                  // Tutaj w przyszłości przekażemy dokładny odcinek do playera/scrapera
+                  // Na razie uruchamiamy player z ogólnym itemem
+                  context.push('/player', extra: widget.item);
+                },
+              );
+            },
+            childCount: episodeList.length,
+          ),
+        );
+      },
+      loading: () => const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))),
+      error: (e, _) => SliverToBoxAdapter(child: Center(child: Text('Błąd: $e'))),
     );
   }
 }

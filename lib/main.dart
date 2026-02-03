@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -15,9 +16,16 @@ void main() async {
   // Inicjalizacja biblioteki wideo
   MediaKit.ensureInitialized();
 
+  // Inicjalizacja SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
-    const ProviderScope(
-      child: ZettaApp(),
+    ProviderScope(
+      overrides: [
+        // Wstrzykujemy instancję prefs do providera
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const ZettaApp(),
     ),
   );
 }
@@ -36,7 +44,7 @@ class ZettaApp extends ConsumerWidget {
       // Temat Material Design 3
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: themeMode, // Dynamiczna zmiana
+      themeMode: themeMode,
 
       // Konfiguracja GoRouter
       routerConfig: appRouter,
