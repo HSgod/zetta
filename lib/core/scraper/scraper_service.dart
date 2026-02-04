@@ -16,8 +16,6 @@ class ScraperService {
         ? '$cleanTitle S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}'
         : cleanTitle;
 
-    print('Searching for clean query: $query across all scrapers');
-
     List<VideoSource> allSources = [];
     
     // Szukamy równolegle we wszystkich scraperach
@@ -32,14 +30,13 @@ class ScraperService {
           );
 
           if (!bestMatch.title.toLowerCase().contains(cleanTitle.toLowerCase())) {
-             print('[$scraper.name] Best match "${bestMatch.title}" seems unrelated to "$cleanTitle". Skipping.');
              return <VideoSource>[];
           }
 
           return await scraper.getSources(bestMatch);
         }
       } catch (e) {
-        print('Error in scraper ${scraper.name}: $e');
+        // Ignorujemy błędy poszczególnych scraperów w wersji stabilnej
       }
       return <VideoSource>[];
     }));

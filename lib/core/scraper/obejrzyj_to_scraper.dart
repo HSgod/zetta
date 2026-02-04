@@ -13,7 +13,6 @@ class ObejrzyjToScraper extends BaseScraper {
   @override
   Future<List<SearchResult>> search(String title) async {
     final searchUrl = '$_baseUrl/search/${Uri.encodeComponent(title.toLowerCase())}';
-    print('[$name] Searching: $searchUrl');
     
     try {
         final response = await http.get(Uri.parse(searchUrl));
@@ -36,7 +35,7 @@ class ObejrzyjToScraper extends BaseScraper {
             }
             return results;
         }
-    } catch(e) { print(e); }
+    } catch(e) { /* error */ }
     return [];
   }
 

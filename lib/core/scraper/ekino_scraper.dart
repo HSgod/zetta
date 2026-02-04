@@ -32,7 +32,7 @@ class EkinoScraper extends BaseScraper {
         }
         return results;
       }
-    } catch (e) { print('Search error: $e'); }
+    } catch (e) { /* error */ }
     return [];
   }
 
@@ -60,7 +60,7 @@ class EkinoScraper extends BaseScraper {
         ];
       }
     } catch (e) {
-      print('[$name] Error verifying sources: $e');
+      /* error */
     }
     return [];
   }

@@ -76,7 +76,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     if (streamUrl == _lastStreamUrl) return;
     _lastStreamUrl = streamUrl;
 
-    debugPrint("🎬 STARTING PLAYBACK: $streamUrl");
     player.open(Media(streamUrl, httpHeaders: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
       'Referer': 'https://play.ekino.link/',
@@ -430,7 +429,7 @@ class VideoSniffer extends StatelessWidget {
         },
       ),
       onConsoleMessage: (controller, message) {
-        debugPrint("🌐 JS: ${message.message}");
+        // Logi JS wyłączone w wersji stabilnej
       },
       onCreateWindow: (controller, action) async {
         if (action.request.url != null) {
@@ -539,7 +538,6 @@ class VideoSniffer extends StatelessWidget {
       shouldInterceptRequest: (controller, request) async {
         final reqUrl = request.url.toString();
         if (reqUrl.contains('.m3u8') || (reqUrl.contains('.mp4') && !reqUrl.contains('ads'))) {
-          debugPrint("🌐 SNIFFER FOUND: " + reqUrl);
           onStreamCaught(reqUrl);
         }
         return null;

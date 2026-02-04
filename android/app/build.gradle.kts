@@ -63,6 +63,15 @@ android {
             )
         }
     }
+
+    applicationVariants.all {
+        outputs.forEach { output ->
+            if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
+                val abi = output.getFilter(com.android.build.OutputFile.ABI) ?: "universal"
+                output.outputFileName = "zetta-$versionName-$abi.apk"
+            }
+        }
+    }
 }
 
 flutter {
