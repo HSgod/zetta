@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'player_args.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -21,30 +22,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late final VideoController controller;
   
   bool _isLoading = true;
+  bool _isLocked = false;
+  bool _showControls = true;
   String _loadingStatus = "Ładowanie...";
+  Timer? _hideControlsTimer;
+  Timer? _progressSaveTimer;
+  
   final List<StreamSubscription> _subscriptions = [];
 
   @override
   void initState() {
     super.initState();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft, 
+      DeviceOrientation.landscapeRight
+    ]);
 
     player = Player();
     controller = VideoController(player);
 
-    // Słuchamy stanu odtwarzacza, aby wiedzieć kiedy faktycznie zaczął grać
     _subscriptions.add(player.stream.playing.listen((playing) {
-      final width = player.state.width;
-      if (playing && _isLoading && width != null && width > 0) {
+      if (playing && _isLoading && (player.state.width ?? 0) > 0) {
         setState(() => _isLoading = false);
+        _startHideTimer();
+        _startProgressTimer();
       }
     }));
 
-    // Słuchamy też zmian wymiarów, bo klatka wideo może pojawić się chwilę po 'playing'
     _subscriptions.add(player.stream.width.listen((width) {
-      if (width != null && width > 0 && player.state.playing && _isLoading) {
+      if ((width ?? 0) > 0 && player.state.playing && _isLoading) {
         setState(() => _isLoading = false);
+        _startHideTimer();
+        _startProgressTimer();
       }
     }));
 
@@ -54,249 +68,316 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     }
   }
 
+  void _startProgressTimer() {
+    _progressSaveTimer?.cancel();
+    _progressSaveTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _saveProgress();
+    });
+  }
+
+  Future<void> _saveProgress() async {
+    if (_isLoading) return;
+    final prefs = await SharedPreferences.getInstance();
+    final key = "progress_${widget.args.item.title}";
+    await prefs.setInt(key, player.state.position.inSeconds);
+  }
+
+  Future<void> _loadProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = "progress_${widget.args.item.title}";
+    final savedSeconds = prefs.getInt(key);
+    if (savedSeconds != null && savedSeconds > 10) {
+      player.seek(Duration(seconds: savedSeconds));
+    }
+  }
+
   void _startPlayback(String streamUrl) {
     if (!mounted) return;
-    print("🎬 SUCCESS! SNIFFER CAUGHT STREAM: $streamUrl");
+    print("🎬 SNIFFER CAUGHT STREAM: $streamUrl");
     
     setState(() {
-      _loadingStatus = "Uruchamianie strumienia...";
+      _loadingStatus = "Inicjalizacja strumienia...";
     });
 
     player.open(Media(streamUrl, httpHeaders: {
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro Build/UQ1A.231205.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.144 Mobile Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
       'Referer': 'https://play.ekino.link/',
-      'Origin': 'https://play.ekino.link',
-    }));
+    })).then((_) => _loadProgress());
+  }
+
+  void _startHideTimer() {
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && !_isLocked) setState(() => _showControls = false);
+    });
   }
 
   @override
   void dispose() {
+    _saveProgress();
+    _hideControlsTimer?.cancel();
+    _progressSaveTimer?.cancel();
     for (var s in _subscriptions) {
       s.cancel();
     }
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp, 
+      DeviceOrientation.portraitDown
+    ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     player.dispose();
     super.dispose();
   }
 
+  void _onDoubleTap(TapDownDetails details, double screenWidth) {
+    if (_isLocked) return;
+    final isRightSide = details.globalPosition.dx > screenWidth / 2;
+    if (isRightSide) {
+      player.seek(player.state.position + const Duration(seconds: 10));
+    } else {
+      player.seek(player.state.position - const Duration(seconds: 10));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // WEBVIEW - Ukryte, ale działające w tle (tylko podczas ładowania)
-          if (_isLoading)
-            Opacity(
-              opacity: 0.01,
-              child: _buildDiagnosticSniffer(),
-            ),
+      body: GestureDetector(
+        onTap: () {
+          setState(() => _showControls = !_showControls);
+          if (_showControls) _startHideTimer();
+        },
+        onDoubleTapDown: (details) => _onDoubleTap(details, screenWidth),
+        child: Stack(
+          children: [
+            // WEBVIEW SNIFFER (UKRYTY)
+            if (_isLoading)
+              Opacity(
+                opacity: 0.01,
+                child: _buildDiagnosticSniffer(),
+              ),
 
-          // PLAYER - Zawsze w drzewie, ale pod spodem nakładki
-          Positioned.fill(
-            child: Video(
-              controller: controller, 
-              controls: MaterialVideoControls,
-            ),
-          ),
-            
-          // JEDNOLITY EKRAN ŁADOWANIA
-          if (_isLoading)
+            // PLAYER
             Positioned.fill(
-              child: Container(
-                color: Colors.black,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(color: Colors.white),
-                    const SizedBox(height: 20),
-                    Text(
-                      _loadingStatus,
-                      style: const TextStyle(
-                        color: Colors.white, 
-                        fontSize: 16, 
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 1.1,
+              child: Video(
+                controller: controller,
+                controls: NoVideoControls,
+              ),
+            ),
+
+            // CUSTOM UI OVERLAY
+            if (_showControls || _isLocked)
+              _buildCustomControls(),
+
+            // LOADING OVERLAY
+            if (_isLoading)
+              _buildLoadingOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            const SizedBox(height: 24),
+            Text(
+              _loadingStatus,
+              style: const TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 1.2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomControls() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          color: _isLocked ? Colors.transparent : Colors.black38,
+        ),
+        child: Column(
+          children: [
+            // TOP BAR
+            if (!_isLocked)
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.args.item.title,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            const Expanded(child: SizedBox()),
+
+            // LOCK BUTTON (SIDE)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: IconButton(
+                  icon: Icon(_isLocked ? Icons.lock : Icons.lock_open, color: Colors.white70, size: 28),
+                  onPressed: () => setState(() => _isLocked = !_isLocked),
                 ),
               ),
             ),
 
-          // PRZYCISK ZAMKNIĘCIA
-          Positioned(
-            top: 10, left: 10,
-            child: SafeArea(
-              child: CircleAvatar(
-                backgroundColor: Colors.black54,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+            const Expanded(child: SizedBox()),
+
+            // BOTTOM CONTROLS
+            if (!_isLocked)
+              _buildBottomBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StreamBuilder<Duration>(
+            stream: player.stream.position,
+            builder: (context, snapshot) {
+              final position = snapshot.data ?? Duration.zero;
+              final duration = player.state.duration;
+              return Column(
+                children: [
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 2,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    ),
+                    child: Slider(
+                      value: position.inSeconds.toDouble().clamp(0, duration.inSeconds.toDouble() > 0 ? duration.inSeconds.toDouble() : 1.0),
+                      max: duration.inSeconds.toDouble() > 0 ? duration.inSeconds.toDouble() : 1.0,
+                      onChanged: (val) => player.seek(Duration(seconds: val.toInt())),
+                      activeColor: Colors.redAccent,
+                      inactiveColor: Colors.white24,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_formatDuration(position), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text(_formatDuration(duration), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                onPressed: () => player.seek(player.state.position - const Duration(seconds: 10)),
               ),
-            ),
+              const SizedBox(width: 32),
+              StreamBuilder<bool>(
+                stream: player.stream.playing,
+                builder: (context, snapshot) {
+                  final isPlaying = snapshot.data ?? false;
+                  return IconButton(
+                    icon: Icon(isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled, color: Colors.white, size: 64),
+                    onPressed: () => player.playOrPause(),
+                  );
+                },
+              ),
+              const SizedBox(width: 32),
+              IconButton(
+                icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                onPressed: () => player.seek(player.state.position + const Duration(seconds: 10)),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return "${d.inHours > 0 ? '${d.inHours}:' : ''}$minutes:$seconds";
+  }
+
   Widget _buildDiagnosticSniffer() {
     return InAppWebView(
       initialUrlRequest: URLRequest(
         url: WebUri(widget.args.videoUrl),
-        headers: {'Referer': 'https://ekino-tv.pl/'},
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Referer': 'https://ekino-tv.pl/',
+        },
       ),
       initialUserScripts: UnmodifiableListView<UserScript>([
         UserScript(
           source: """
             (function() {
-              window.hCaptchaCallback = function() { console.log('JS: CF Callback'); };
-
-                                          function tryClick() {
-
-                                            var btn = document.querySelector('.buttonprch') || 
-
-                                                      document.querySelector('.warning-msg a') ||
-
-                                                      document.querySelector('a[href*="play.ekino.link"]') ||
-
-                                                      document.querySelector('.vjs-big-play-button') ||
-
-                                                      document.querySelector('.play-button');
-
-                            
-
-                                            if (btn && btn.click) {
-
-                                              if (window._zettaDone) return;
-
-                                              window._zettaDone = true;
-
-                            
-
-                                              if (btn.tagName === 'A') btn.target = "_self";
-
-                                              if (btn.scrollIntoView) btn.scrollIntoView({behavior: 'instant', block: 'center'});
-
-                            
-
-                                              setTimeout(function() {
-
-                                                if (btn.focus) btn.focus();
-
-                                                btn.click();
-
-                                                ['mousedown', 'mouseup'].forEach(function(t) {
-
-                                                  btn.dispatchEvent(new MouseEvent(t, {view: window, bubbles: true, cancelable: true, buttons: 1}));
-
-                                                });
-
-                                              }, 1000);
-
-                                              return;
-
-                                            }
-
-                            
-
-                                            // Logika dla obejrzyj.to
-
-                                            if (window.location.hostname.includes('obejrzyj.to')) {
-
-                                               var frames = document.getElementsByTagName('iframe');
-
-                                               for (var i = 0; i < frames.length; i++) {
-
-                                                  try {
-
-                                                    var fDoc = frames[i].contentDocument || frames[i].contentWindow.document;
-
-                                                    if (fDoc) {
-
-                                                      var play = fDoc.querySelector('.play-button, .vjs-big-play-button');
-
-                                                      if (play && play.click) play.click();
-
-                                                    }
-
-                                                  } catch(e) {}
-
-                                               }
-
-                                            }
-
-                            
-
-                                            if (window.location.hostname.includes('ekino-tv.pl') && !window.location.href.includes('player')) {  
-
-                                              if (window._zettaInit) return;
-
-                            
-
-                                              var players = document.querySelectorAll('.players li a');
-
-                                              if (players.length > 0) {
-
-                                                var p = players[0];
-
-                                                if (p.parentElement && !p.parentElement.classList.contains('active')) {
-
-                                                  p.click();
-
-                                                  return;
-
-                                                }
-
-                                              }
-
-                            
-
-                                              var img = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
-
-                                              if (img && img.click) {
-
-                                                window._zettaInit = true;
-
-                                                img.click();
-
-                                                if (img.parentElement && img.parentElement.tagName === 'A') img.parentElement.click();
-
-                                              }
-
-                                            }
-
-                                          }
-
-                            
-              setInterval(tryClick, 2000);
+              function attemptAutoClick() {
+                var playBtns = ['.vjs-big-play-button', '.jw-display-icon-container', '.play-button', 'button[aria-label="Play"]', 'a[href*="play.ekino.link"]', '.buttonprch'];
+                for (var i = 0; i < playBtns.length; i++) {
+                  var btn = document.querySelector(playBtns[i]);
+                  if (btn && btn.offsetParent !== null) { 
+                    btn.click();
+                    return; 
+                  }
+                }
+                var video = document.querySelector('video');
+                if (video && video.paused) video.play();
+              }
+              setInterval(attemptAutoClick, 1500);
             })();
           """,
           injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+          forMainFrameOnly: false,
         ),
       ]),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
         useShouldInterceptRequest: true,
-        mediaPlaybackRequiresUserGesture: false,
-        domStorageEnabled: true,
-        supportMultipleWindows: false,
-        userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro Build/UQ1A.231205.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.144 Mobile Safari/537.36",
+        preferredContentMode: UserPreferredContentMode.DESKTOP,
       ),
-      onConsoleMessage: (controller, msg) => print("[JS DEBUG] ${msg.message}"),
       shouldInterceptRequest: (controller, request) async {
         final reqUrl = request.url.toString();
-        if (reqUrl.contains('.m3u8') || reqUrl.contains('.mp4') || (reqUrl.contains('master') && reqUrl.contains('m3u8'))) {
+        if (reqUrl.contains('.m3u8') || reqUrl.contains('.mp4')) {
           _startPlayback(reqUrl);
         }
         return null;
-      },
-      onLoadStop: (controller, currentUrl) async {
-        setState(() => _loadingStatus = "Ładowanie...");
       },
     );
   }
