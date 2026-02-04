@@ -9,100 +9,108 @@ class MediaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: () => context.push('/details', extra: item),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Plakat z cieniem i zaokrągleniami
+          // Modern MD3 Poster
           Expanded(
             child: Container(
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.5),
+                  width: 1,
+                ),
+                color: colorScheme.surfaceContainerHighest,
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Obrazek
-                    item.posterUrl != null
-                        ? Image.network(
-                            item.posterUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: Icon(Icons.movie_outlined, 
-                                color: Theme.of(context).colorScheme.onSurfaceVariant
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            child: Icon(Icons.movie_outlined, 
-                              color: Theme.of(context).colorScheme.onSurfaceVariant
-                            ),
-                          ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Poster Image
+                  item.posterUrl != null
+                      ? Image.network(
+                          item.posterUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
+                        )
+                      : _buildPlaceholder(colorScheme),
 
-                    // Badge z oceną (na górze po prawej)
-                    if (item.rating != null && item.rating! > 0)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                item.rating!.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                  // Rating Badge (Glassmorphism MD3E)
+                  if (item.rating != null && item.rating! > 0)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondaryContainer.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.star_rounded, color: colorScheme.primary, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              item.rating!.toStringAsFixed(1),
+                              style: TextStyle(
+                                color: colorScheme.onSecondaryContainer,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Tytuł pod spodem
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          // Info under the card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.2,
+                      ),
                 ),
-          ),
-          // Rok produkcji (jeśli jest)
-          if (item.releaseDate != null && item.releaseDate!.length >= 4)
-            Text(
-              item.releaseDate!.substring(0, 4),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                const SizedBox(height: 2),
+                if (item.releaseDate != null && item.releaseDate!.length >= 4)
+                  Text(
+                    item.releaseDate!.substring(0, 4),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
+              ],
             ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(ColorScheme colorScheme) {
+    return Center(
+      child: Icon(
+        Icons.movie_filter_rounded, 
+        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+        size: 32,
       ),
     );
   }

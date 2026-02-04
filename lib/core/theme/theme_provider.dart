@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Provider dla SharedPreferences (zainicjujemy go w main.dart)
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError();
 });
@@ -10,7 +9,6 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
-    // Odczytujemy zapisany stan przy starcie
     final prefs = ref.watch(sharedPreferencesProvider);
     final isDark = prefs.getBool('isDarkMode');
     
@@ -39,3 +37,19 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 }
 
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+
+// Nowy Provider dla Material You
+class MaterialYouNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('useMaterialYou') ?? true;
+  }
+
+  void toggle() {
+    state = !state;
+    ref.read(sharedPreferencesProvider).setBool('useMaterialYou', state);
+  }
+}
+
+final materialYouProvider = NotifierProvider<MaterialYouNotifier, bool>(MaterialYouNotifier.new);

@@ -3,27 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Wybieramy schemat "Dell" lub "Mallard" dla bardziej ekspresyjnego wyglądu (lub zostajemy przy deepBlue)
   static const FlexScheme _scheme = FlexScheme.materialBaseline;
 
   static ThemeData light = FlexThemeData.light(
     scheme: _scheme,
     surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
-    blendLevel: 12,
+    blendLevel: 7,
     subThemesData: const FlexSubThemesData(
-      blendOnLevel: 15,
+      blendOnLevel: 10,
       blendOnColors: false,
       useTextTheme: true,
       useM2StyleDividerInM3: false,
       alignedDropdown: true,
       useInputDecoratorThemeInDialogs: true,
-      // Ekspresyjne zaokrąglenia
-      defaultRadius: 24.0,
+      defaultRadius: 28.0,
+      thinBorderWidth: 1.0,
+      thickBorderWidth: 2.0,
+      textButtonRadius: 20.0,
+      filledButtonRadius: 20.0,
       elevatedButtonRadius: 20.0,
-      cardRadius: 24.0,
+      outlinedButtonRadius: 20.0,
       inputDecoratorRadius: 20.0,
-      fabRadius: 16.0,
-      // Paski nawigacji
+      cardRadius: 28.0,
+      fabRadius: 20.0,
       navigationBarIndicatorOpacity: 0.24,
       navigationBarLabelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
@@ -36,20 +38,23 @@ class AppTheme {
   static ThemeData dark = FlexThemeData.dark(
     scheme: _scheme,
     surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
-    blendLevel: 18,
+    blendLevel: 13,
     subThemesData: const FlexSubThemesData(
-      blendOnLevel: 25,
+      blendOnLevel: 20,
       useTextTheme: true,
       useM2StyleDividerInM3: false,
       alignedDropdown: true,
       useInputDecoratorThemeInDialogs: true,
-      // Ekspresyjne zaokrąglenia
-      defaultRadius: 24.0,
+      defaultRadius: 28.0,
+      thinBorderWidth: 1.0,
+      thickBorderWidth: 2.0,
+      textButtonRadius: 20.0,
+      filledButtonRadius: 20.0,
       elevatedButtonRadius: 20.0,
-      cardRadius: 24.0,
+      outlinedButtonRadius: 20.0,
       inputDecoratorRadius: 20.0,
-      fabRadius: 16.0,
-      // Paski nawigacji
+      cardRadius: 28.0,
+      fabRadius: 20.0,
       navigationBarIndicatorOpacity: 0.24,
       navigationBarLabelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
@@ -58,10 +63,10 @@ class AppTheme {
     swapLegacyOnMaterial3: true,
     fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
   ).copyWith(
-    // Dodatkowe dopieszczenie typografii dla trybu ciemnego
     textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme).copyWith(
       displayLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, letterSpacing: -1),
       headlineMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+      titleLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
     ),
   );
 }

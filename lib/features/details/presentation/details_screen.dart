@@ -171,29 +171,32 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            expandedHeight: 400,
+          SliverAppBar(
+            expandedHeight: 300,
             pinned: true,
             stretch: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 widget.item.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
-                ),
+                style: const TextStyle(color: Colors.white),
               ),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (widget.item.posterUrl != null)
+                  if (widget.item.posterUrl != null && widget.item.posterUrl!.isNotEmpty)
                     Image.network(
                       widget.item.posterUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_,__,___) => Container(color: Colors.grey),
+                      errorBuilder: (_,__,___) => Container(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: const Icon(Icons.movie_filter_rounded, size: 64),
+                      ),
                     )
                   else
-                    Container(color: Theme.of(context).colorScheme.primaryContainer),
+                    Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: const Icon(Icons.movie_filter_rounded, size: 64),
+                    ),
                   
                   const DecoratedBox(
                     decoration: BoxDecoration(
@@ -326,15 +329,29 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               return ListTile(
                 leading: episode.stillPath != null
                     ? ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(12),
                         child: Image.network(
-                          '${dotenv.env['TMDB_IMAGE_BASE_URL']}${episode.stillPath}',
-                          width: 80,
+                          '${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}',
+                          width: 100,
+                          height: 56,
                           fit: BoxFit.cover,
-                          errorBuilder: (_,__,___) => const Icon(Icons.tv),
+                          errorBuilder: (_,__,___) => Container(
+                            width: 100,
+                            height: 56,
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: const Icon(Icons.tv_rounded),
+                          ),
                         ),
                       )
-                    : const Icon(Icons.tv),
+                    : Container(
+                        width: 100,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.tv_rounded),
+                      ),
                 title: Text('${episode.episodeNumber}. ${episode.name}'),
                 subtitle: Text(
                   episode.overview != null && episode.overview!.isNotEmpty 

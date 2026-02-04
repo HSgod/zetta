@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../domain/media_item.dart';
 import 'providers/search_provider.dart';
 import 'widgets/media_card.dart';
 
@@ -13,19 +11,26 @@ class HomeScreen extends ConsumerWidget {
     final trending = ref.watch(trendingProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Zetta'),
-        centerTitle: false,
-      ),
       body: trending.when(
         data: (items) => CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
+            const SliverAppBar(
+              floating: true,
+              pinned: true,
+              title: Text('Zetta'),
+              centerTitle: false,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              sliver: SliverToBoxAdapter(
                 child: Text(
                   'Popularne teraz',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
@@ -33,13 +38,13 @@ class HomeScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverLayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = (constraints.crossAxisExtent / 150).floor().clamp(2, 6);
+                  final crossAxisCount = (constraints.crossAxisExtent / 160).floor().clamp(2, 6);
                   return SliverGrid(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 16,
+                      mainAxisSpacing: 24,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.65,
+                      childAspectRatio: 0.6,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) => MediaCard(item: items[index]),
@@ -49,7 +54,7 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
             ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
