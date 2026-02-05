@@ -28,10 +28,6 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _MediaSection(
-                  title: 'Trendujące teraz',
-                  provider: trendingProvider,
-                ),
-                _MediaSection(
                   title: 'Popularne filmy',
                   provider: popularMoviesProvider,
                 ),
