@@ -71,6 +71,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         _startProgressTimer();
       }
     }));
+
+    // AUTO-START: Jeśli mamy już adres (z Biblioteki), odpalamy od razu
+    if (widget.args.videoUrl != null) {
+      _startPlayback(widget.args.videoUrl!);
+    }
   }
 
   String? _lastStreamUrl;

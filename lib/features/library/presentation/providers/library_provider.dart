@@ -122,6 +122,10 @@ class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
     state = state.where((e) => e.id != id).toList();
     final jsonList = state.map((e) => json.encode(e.toMap())).toList();
     prefs.setStringList(_key, jsonList);
+
+    // Całkowite czyszczenie śladów po tym seansie
+    prefs.remove('progress_$id');
+    prefs.remove('source_$id');
   }
 }
 

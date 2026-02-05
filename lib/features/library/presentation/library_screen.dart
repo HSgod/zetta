@@ -45,7 +45,7 @@ class LibraryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Moja Biblioteka'),
+        title: const Text('Moja biblioteka'),
         centerTitle: true,
       ),
       body: CustomScrollView(
