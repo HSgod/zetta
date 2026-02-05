@@ -9,6 +9,23 @@ class ScraperService {
     ObejrzyjToScraper(),
   ];
 
+  Future<bool> isAvailable(String title) async {
+    String cleanTitle = title.split(':').first.split('-').first.trim().toLowerCase();
+    
+    // Sprawdzamy równolegle we wszystkich scraperach (tylko wyszukiwanie, bez wyciągania źródeł)
+    final checkResults = await Future.wait(_scrapers.map((scraper) async {
+      try {
+        final searchResults = await scraper.search(cleanTitle);
+        // Sprawdzamy czy którykolwiek wynik zawiera nasz tytuł
+        return searchResults.any((r) => r.title.toLowerCase().contains(cleanTitle));
+      } catch (e) {
+        return false;
+      }
+    }));
+
+    return checkResults.any((found) => found);
+  }
+
   Future<List<VideoSource>> findStream(String title, {int? season, int? episode}) async {
     String cleanTitle = title.split(':').first.split('-').first.trim();
     
