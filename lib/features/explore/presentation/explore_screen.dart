@@ -4,13 +4,19 @@ import '../../home/domain/media_item.dart';
 import '../../home/presentation/providers/search_provider.dart';
 import '../../home/presentation/widgets/media_card.dart';
 
-class ExploreScreen extends ConsumerWidget {
+class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedCategory = ref.watch(homeCategoryProvider);
+  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
+}
 
+class _ExploreScreenState extends ConsumerState<ExploreScreen> {
+  MediaType _selectedType = MediaType.movie;
+  String? _selectedGenreId;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Odkrywaj'),
@@ -20,57 +26,77 @@ class ExploreScreen extends ConsumerWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
-            child: _buildCategorySelector(ref, context),
-          ),
-          if (selectedCategory == null)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.movie_filter_outlined, 
-                      size: 64, 
-                      color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Wybierz kategorię powyżej'),
-                  ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTypeSelector(),
+                _buildGenreSelector(),
+                Divider(
+                  height: 1, 
+                  indent: 20, 
+                  endIndent: 20, 
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
                 ),
-              ),
-            )
-          else
-            _buildCategoryGrid(ref, selectedCategory),
+              ],
+            ),
+          ),
+          _buildCategoryGrid(),
         ],
       ),
     );
   }
 
-  Widget _buildCategorySelector(WidgetRef ref, BuildContext context) {
-    final selected = ref.watch(homeCategoryProvider);
-    final categories = {
-      'Filmy': 'movie',
-      'Seriale': 'tv',
+  Widget _buildTypeSelector() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
+        children: [
+          _TypeChip(
+            label: 'Filmy',
+            isSelected: _selectedType == MediaType.movie,
+            onSelected: () => setState(() {
+              _selectedType = MediaType.movie;
+              _selectedGenreId = null; // Reset genre on type change
+            }),
+          ),
+          const SizedBox(width: 8),
+          _TypeChip(
+            label: 'Seriale',
+            isSelected: _selectedType == MediaType.series,
+            onSelected: () => setState(() {
+              _selectedType = MediaType.series;
+              _selectedGenreId = null;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenreSelector() {
+    final genres = {
+      'Wszystko': null,
       'Akcja': '28',
       'Komedia': '35',
       'Horror': '27',
       'Sci-Fi': '878',
+      'Dramat': '18',
+      'Animacja': '16',
+      'Thriller': '53',
     };
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Row(
-        children: categories.entries.map((cat) {
-          final isSelected = selected == cat.value;
+        children: genres.entries.map((genre) {
+          final isSelected = _selectedGenreId == genre.value;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: Text(cat.key),
+            child: ChoiceChip(
+              label: Text(genre.key),
               selected: isSelected,
-              onSelected: (val) {
-                ref.read(homeCategoryProvider.notifier).setCategory(val ? cat.value : null);
-              },
+              onSelected: (val) => setState(() => _selectedGenreId = val ? genre.value : null),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               showCheckmark: false,
             ),
@@ -80,13 +106,9 @@ class ExploreScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryGrid(WidgetRef ref, String category) {
-    final isTv = category == 'tv';
-    final isMovie = category == 'movie';
-    final genreId = (!isTv && !isMovie) ? int.tryParse(category) : null;
-    final type = isTv ? MediaType.series : MediaType.movie;
-
-    final discoverData = ref.watch(discoverProvider((type: type, genreId: genreId)));
+  Widget _buildCategoryGrid() {
+    final genreId = _selectedGenreId != null ? int.tryParse(_selectedGenreId!) : null;
+    final discoverData = ref.watch(discoverProvider((type: _selectedType, genreId: genreId)));
 
     return discoverData.when(
       data: (items) => SliverPadding(
@@ -106,6 +128,42 @@ class ExploreScreen extends ConsumerWidget {
       ),
       loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
       error: (err, _) => SliverFillRemaining(child: Center(child: Text('Błąd: $err'))),
+    );
+  }
+}
+
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onSelected;
+
+  const _TypeChip({
+    required this.label,
+    required this.isSelected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onSelected,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 }
