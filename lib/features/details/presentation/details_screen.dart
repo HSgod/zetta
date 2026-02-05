@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
 import '../../player/presentation/player_args.dart';
 import '../../home/presentation/widgets/media_card.dart';
+import '../../library/presentation/providers/library_provider.dart';
 
 // Provider dla detali serialu (liczba sezonów)
 final tvDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) async {
@@ -189,6 +191,30 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 ),
               ),
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.3),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final favorites = ref.watch(favoritesProvider);
+                      final isFav = favorites.any((e) => e.id == widget.item.id);
+                      return IconButton(
+                        icon: Icon(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          color: isFav ? Colors.red : Colors.white,
+                        ),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [
                 StretchMode.zoomBackground,

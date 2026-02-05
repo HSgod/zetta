@@ -5,6 +5,7 @@ import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/details/presentation/details_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
+import '../../features/explore/presentation/explore_screen.dart';
 import '../../features/player/presentation/video_player_screen.dart';
 import '../../features/player/presentation/player_args.dart';
 import '../../features/home/domain/media_item.dart';
@@ -13,6 +14,7 @@ import 'scaffold_with_navbar.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorHomeKey = GlobalKey<NavigatorState>(debugLabel: 'shellHome');
 final _shellNavigatorSearchKey = GlobalKey<NavigatorState>(debugLabel: 'shellSearch');
+final _shellNavigatorExploreKey = GlobalKey<NavigatorState>(debugLabel: 'shellExplore');
 final _shellNavigatorLibraryKey = GlobalKey<NavigatorState>(debugLabel: 'shellLibrary');
 final _shellNavigatorSettingsKey = GlobalKey<NavigatorState>(debugLabel: 'shellSettings');
 
@@ -40,6 +42,15 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/search',
               builder: (context, state) => const SearchScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorExploreKey,
+          routes: [
+            GoRoute(
+              path: '/explore',
+              builder: (context, state) => const ExploreScreen(),
             ),
           ],
         ),

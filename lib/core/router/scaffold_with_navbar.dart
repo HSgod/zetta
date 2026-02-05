@@ -21,7 +21,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
             body: navigationShell,
             bottomNavigationBar: Container(
               height: 60,
-              margin: const EdgeInsets.fromLTRB(60, 0, 60, 30), // Mocniejszy 'pill'
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 30), // Zmniejszony margines z 60 na 20
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
@@ -43,8 +43,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
                       children: [
                         _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded),
                         _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded),
-                        _buildNavItem(context, 2, Icons.video_library_outlined, Icons.video_library_rounded),
-                        _buildNavItem(context, 3, Icons.settings_outlined, Icons.settings_rounded),
+                        _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded),
+                        _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded),
+                        _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded),
                       ],
                     ),
                   ),
@@ -72,6 +73,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
                       icon: Icon(Icons.search_outlined),
                       selectedIcon: Icon(Icons.search),
                       label: Text('Szukaj'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.explore_outlined),
+                      selectedIcon: Icon(Icons.explore),
+                      label: Text('Odkrywaj'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.video_library_outlined),
