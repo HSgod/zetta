@@ -132,16 +132,19 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final savedSeconds = prefs.getInt(key);
     
     if (savedSeconds != null && savedSeconds > 10) {
-      // Czekamy na załadowanie czasu trwania, aby wiedzieć czy możemy skoczyć
       StreamSubscription? sub;
-      sub = player.stream.duration.listen((duration) {
-        if (duration.inSeconds > savedSeconds && duration.inSeconds > 0) {
-          player.seek(Duration(seconds: savedSeconds));
+      sub = player.stream.buffer.listen((buffer) {
+        // Skaczemy dopiero gdy bufor ma przynajmniej 1 sekundę lub jest gotowy
+        if (buffer.inSeconds > 0) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              player.seek(Duration(seconds: savedSeconds));
+            }
+          });
           sub?.cancel();
         }
       });
-      // Zabezpieczenie na wypadek gdyby stream nigdy nie podał długości (live)
-      Future.delayed(const Duration(seconds: 10), () => sub?.cancel());
+      Future.delayed(const Duration(seconds: 15), () => sub?.cancel());
     }
   }
 

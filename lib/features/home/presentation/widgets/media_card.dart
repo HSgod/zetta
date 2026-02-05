@@ -4,8 +4,13 @@ import '../../domain/media_item.dart';
 
 class MediaCard extends StatelessWidget {
   final MediaItem item;
+  final VoidCallback? onLongPress;
 
-  const MediaCard({super.key, required this.item});
+  const MediaCard({
+    super.key, 
+    required this.item,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +18,7 @@ class MediaCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => context.push('/details', extra: item),
+      onLongPress: onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
