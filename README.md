@@ -1,14 +1,15 @@
 # Zetta 🎬
 
-Zetta to nowoczesna open-source do odtwarzania treści wideo z popularnych polskich serwisów streamingowych. 
+Zetta to aplikacja open-source do odtwarzania treści wideo z popularnych polskich serwisów streamingowych. 
 Zbudowana we Flutterze, z pełnym wsparciem dla **Windows** oraz **Android**, z wytycznymi **Material 3 Expressive**.
 
 ## ✨ Funkcje
-- 📱 **Multisource Scraping**: Równoległe przeszukiwanie polskich serwisów streamingowych (obecnie Ekino-TV oraz Obejrzyj.to) w poszukiwaniu najlepszych źródeł wideo.
+- 📱 **Multisource Scraping**: Równoległe przeszukiwanie polskich serwisów streamingowych w poszukiwaniu najlepszych źródeł wideo.
 - 📺 **Obsługa filmów i seriali**: Pełne wsparcie dla produkcji wieloodcinkowych z podziałem na sezony i listą odcinków (wraz z miniaturami i opisami).
 - 🔍 **Integracja z TMDB**: Dynamiczne pobieranie metadanych, trendów, opisów, ocen oraz plakatów w wysokiej rozdzielczości przy użyciu API The Movie Database.
-- 🎨 **Material 3 Expressive:** Piękny, nowoczesny interfejs z dynamicznymi kolorami.
-- 🌓 **Tryb Ciemny/Jasny:** Pełna obsługa motywów systemowych.
+- 🎨 **Material 3 Expressive**: Piękny, nowoczesny interfejs z dynamicznymi kolorami.
+- 🌓 **Tryb Ciemny/Jasny**: Pełna obsługa motywów systemowych.
+- 💻 **Wieloplatformowość**: Aplikacja działająca na Androidzie oraz Windowsie.
 
 ## 🚀 Technologie
 - **Framework:** [Flutter](https://flutter.dev)
