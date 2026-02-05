@@ -43,7 +43,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
                       children: [
                         _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded),
                         _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded),
-                        _buildNavItem(context, 2, Icons.settings_outlined, Icons.settings_rounded),
+                        _buildNavItem(context, 2, Icons.video_library_outlined, Icons.video_library_rounded),
+                        _buildNavItem(context, 3, Icons.settings_outlined, Icons.settings_rounded),
                       ],
                     ),
                   ),
@@ -71,6 +72,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
                       icon: Icon(Icons.search_outlined),
                       selectedIcon: Icon(Icons.search),
                       label: Text('Szukaj'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.video_library_outlined),
+                      selectedIcon: Icon(Icons.video_library),
+                      label: Text('Biblioteka'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.settings_outlined),

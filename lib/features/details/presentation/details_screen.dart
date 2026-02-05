@@ -8,6 +8,7 @@ import '../../home/presentation/providers/search_provider.dart';
 import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
 import '../../player/presentation/player_args.dart';
+import '../../home/presentation/widgets/media_card.dart';
 
 // Provider dla detali serialu (liczba sezonów)
 final tvDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) async {
@@ -332,9 +333,55 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
           if (!isMovie) _buildEpisodeList(),
           
+          SliverToBoxAdapter(
+            child: _buildRecommendations(),
+          ),
+          
           const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecommendations() {
+    final recommendations = ref.watch(recommendationsProvider((id: widget.item.id, type: widget.item.type)));
+    final theme = Theme.of(context);
+
+    return recommendations.when(
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+              child: Text(
+                'Podobne treści',
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(
+              height: 260,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: items.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 16),
+                itemBuilder: (context, index) {
+                  return SizedBox(
+                    width: 150,
+                    child: MediaCard(item: items[index]),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+      error: (err, _) => const SizedBox.shrink(),
     );
   }
 

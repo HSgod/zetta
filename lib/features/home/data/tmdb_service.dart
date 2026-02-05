@@ -100,6 +100,38 @@ class TmdbService {
     }
   }
 
+  Future<List<MediaItem>> getRecommendations(String id, MediaType type) async {
+    final endpoint = type == MediaType.movie ? 'movie' : 'tv';
+    final response = await http.get(
+      Uri.parse('$_baseUrl/$endpoint/$id/recommendations?api_key=$_apiKey&language=pl-PL'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List results = data['results'];
+      return results.map((json) => _mapToMediaItem(json, type: type)).toList();
+    } else {
+      throw Exception('Failed to load recommendations');
+    }
+  }
+
+  Future<List<MediaItem>> getDiscover({required MediaType type, int? genreId}) async {
+    final endpoint = type == MediaType.movie ? 'movie' : 'tv';
+    final genreParam = genreId != null ? '&with_genres=$genreId' : '';
+    
+    final response = await http.get(
+      Uri.parse('$_baseUrl/discover/$endpoint?api_key=$_apiKey&language=pl-PL&sort_by=popularity.desc$genreParam'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List results = data['results'];
+      return results.map((json) => _mapToMediaItem(json, type: type)).toList();
+    } else {
+      throw Exception('Failed to discover media');
+    }
+  }
+
   MediaItem _mapToMediaItem(Map<String, dynamic> json, {MediaType? type}) {
     final bool isMovie = type == MediaType.movie || (type == null && (json['media_type'] == 'movie' || json['title'] != null));
     return MediaItem(

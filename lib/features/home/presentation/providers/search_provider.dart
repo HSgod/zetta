@@ -23,6 +23,30 @@ final popularTVProvider = FutureProvider<List<MediaItem>>((ref) async {
   return service.getPopularTV();
 });
 
+// Provider rekomendacji (podobne treści)
+final recommendationsProvider = FutureProvider.family<List<MediaItem>, ({String id, MediaType type})>((ref, arg) async {
+  final service = ref.watch(tmdbServiceProvider);
+  return service.getRecommendations(arg.id, arg.type);
+});
+
+// Provider odkrywania treści
+final discoverProvider = FutureProvider.family<List<MediaItem>, ({MediaType type, int? genreId})>((ref, arg) async {
+  final service = ref.watch(tmdbServiceProvider);
+  return service.getDiscover(type: arg.type, genreId: arg.genreId);
+});
+
+// Stan wybranej kategorii (używamy Notifier dla Riverpod 3.x)
+class HomeCategoryNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void setCategory(String? category) {
+    state = category;
+  }
+}
+
+final homeCategoryProvider = NotifierProvider<HomeCategoryNotifier, String?>(HomeCategoryNotifier.new);
+
 // Stan wyszukiwania (zaimplementowany jako Notifier)
 class SearchQueryNotifier extends Notifier<String> {
   @override
