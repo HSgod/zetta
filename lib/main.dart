@@ -14,7 +14,8 @@ Future<void> _clearAppCache() async {
   try {
     final tempDir = await getTemporaryDirectory();
     if (tempDir.existsSync()) {
-      tempDir.deleteSync(recursive: true);
+      // Usuwamy zawartość asynchronicznie, aby nie blokować startu aplikacji
+      await tempDir.delete(recursive: true);
     }
   } catch (e) {
     debugPrint("Błąd podczas czyszczenia cache: $e");
@@ -27,8 +28,8 @@ void main() async {
   await dotenv.load(fileName: ".env");
   MediaKit.ensureInitialized();
   
-  // Czyścimy cache przy starcie
-  await _clearAppCache();
+  // Czyścimy cache w tle po starcie, aby nie blokować ładowania danych
+  _clearAppCache();
   
   final prefs = await SharedPreferences.getInstance();
 
