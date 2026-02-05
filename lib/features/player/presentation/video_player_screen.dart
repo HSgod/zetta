@@ -4,21 +4,23 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/theme/theme_provider.dart';
 import 'player_args.dart';
 
-class VideoPlayerScreen extends StatefulWidget {
+class VideoPlayerScreen extends ConsumerStatefulWidget {
   final PlayerArgs args;
 
   const VideoPlayerScreen({super.key, required this.args});
 
   @override
-  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+  ConsumerState<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   late final Player player;
   late final VideoController controller;
   
@@ -76,10 +78,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     if (streamUrl == _lastStreamUrl) return;
     _lastStreamUrl = streamUrl;
 
-    player.open(Media(streamUrl, httpHeaders: {
+    // Używamy nagłówków ze scrapera lub domyślnych dla Ekino
+    final headers = widget.args.headers ?? {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
       'Referer': 'https://play.ekino.link/',
-    })).then((_) => _loadProgress());
+    };
+
+    player.open(Media(streamUrl, httpHeaders: headers)).then((_) => _loadProgress());
   }
 
   void _startProgressTimer() {
@@ -132,6 +137,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _onDoubleTapDown(TapDownDetails details, double screenWidth) {
+    final gesturesEnabled = ref.read(playerGesturesProvider);
+    if (!gesturesEnabled) return;
+
     final isRightSide = details.globalPosition.dx > screenWidth / 2;
     HapticFeedback.lightImpact();
     setState(() {
@@ -171,6 +179,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 child: VideoSniffer(
                   initialUrl: widget.args.videoUrl,
                   onStreamCaught: _startPlayback,
+                  args: widget.args,
                 ),
               ),
             ),
@@ -350,24 +359,31 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       builder: (context, snapshot) {
         final pos = snapshot.data ?? Duration.zero;
         final dur = player.state.duration;
+        final primaryColor = Theme.of(context).colorScheme.primary;
+
         return Column(
           children: [
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0), // Ukryty thumb dla czystego wyglądu MD3
-                activeTrackColor: Colors.redAccent,
+                trackHeight: 6, // Grubszy pasek
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7), // Widoczne kółeczko
+                activeTrackColor: primaryColor,
+                thumbColor: primaryColor,
                 inactiveTrackColor: Colors.white.withOpacity(0.2),
-                overlayShape: SliderComponentShape.noOverlay,
+                overlayColor: primaryColor.withOpacity(0.2),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
                 trackShape: const RectangularSliderTrackShape(),
               ),
               child: Slider(
                 value: pos.inSeconds.toDouble().clamp(0.0, dur.inSeconds.toDouble() > 0 ? dur.inSeconds.toDouble() : 1.0),
                 max: dur.inSeconds.toDouble() > 0 ? dur.inSeconds.toDouble() : 1.0,
-                onChanged: (v) => player.seek(Duration(seconds: v.toInt())),
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  player.seek(Duration(seconds: v.toInt()));
+                },
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
@@ -413,33 +429,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 class VideoSniffer extends StatelessWidget {
   final String initialUrl;
   final Function(String) onStreamCaught;
+  final PlayerArgs args;
 
-  const VideoSniffer({super.key, required this.initialUrl, required this.onStreamCaught});
+  const VideoSniffer({
+    super.key, 
+    required this.initialUrl, 
+    required this.onStreamCaught,
+    required this.args,
+  });
 
   @override
   Widget build(BuildContext context) {
     const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
     
-    return InAppWebView(
-      initialUrlRequest: URLRequest(
-        url: WebUri(initialUrl),
-        headers: {
-          'User-Agent': desktopUA,
-          'Referer': 'https://ekino-tv.pl/',
-        },
-      ),
-      onConsoleMessage: (controller, message) {
-        // Logi JS wyłączone w wersji stabilnej
-      },
-      onCreateWindow: (controller, action) async {
-        if (action.request.url != null) {
-          controller.loadUrl(urlRequest: action.request);
-        }
-        return true;
-      },
-      initialUserScripts: UnmodifiableListView<UserScript>([
-        UserScript(
-          source: r"""
+    final headers = args.headers ?? {
+      'User-Agent': desktopUA,
+      'Referer': 'https://ekino-tv.pl/',
+    };
+
+    final defaultScript = r"""
             (function() {
               var clickInProgress = false;
 
@@ -518,7 +526,25 @@ class VideoSniffer extends StatelessWidget {
               }
               setInterval(attemptAutoClick, 1000);
             })();
-          """,
+    """;
+
+    return InAppWebView(
+      initialUrlRequest: URLRequest(
+        url: WebUri(initialUrl),
+        headers: headers,
+      ),
+      onConsoleMessage: (controller, message) {
+        // Logi JS wyłączone w wersji stabilnej
+      },
+      onCreateWindow: (controller, action) async {
+        if (action.request.url != null) {
+          controller.loadUrl(urlRequest: action.request);
+        }
+        return true;
+      },
+      initialUserScripts: UnmodifiableListView<UserScript>([
+        UserScript(
+          source: args.automationScript ?? defaultScript,
           injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
           forMainFrameOnly: false,
         ),

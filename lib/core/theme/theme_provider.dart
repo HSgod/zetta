@@ -43,7 +43,7 @@ class MaterialYouNotifier extends Notifier<bool> {
   @override
   bool build() {
     final prefs = ref.watch(sharedPreferencesProvider);
-    return prefs.getBool('useMaterialYou') ?? true;
+    return prefs.getBool('useMaterialYou') ?? false; // Domyślnie wyłączone
   }
 
   void toggle() {
@@ -53,3 +53,35 @@ class MaterialYouNotifier extends Notifier<bool> {
 }
 
 final materialYouProvider = NotifierProvider<MaterialYouNotifier, bool>(MaterialYouNotifier.new);
+
+// Provider dla gestów wideo
+class PlayerGesturesNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('playerGestures') ?? true;
+  }
+
+  void toggle() {
+    state = !state;
+    ref.read(sharedPreferencesProvider).setBool('playerGestures', state);
+  }
+}
+
+final playerGesturesProvider = NotifierProvider<PlayerGesturesNotifier, bool>(PlayerGesturesNotifier.new);
+
+// Provider dla preferowanej jakości
+class PreferredQualityNotifier extends Notifier<String> {
+  @override
+  String build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getString('preferredQuality') ?? 'Max';
+  }
+
+  void setQuality(String quality) {
+    state = quality;
+    ref.read(sharedPreferencesProvider).setString('preferredQuality', quality);
+  }
+}
+
+final preferredQualityProvider = NotifierProvider<PreferredQualityNotifier, String>(PreferredQualityNotifier.new);

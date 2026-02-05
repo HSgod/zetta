@@ -24,6 +24,7 @@ class VideoSource {
   final String sourceName; // Nazwa scrapera (np. Ekino-TV)
   final Map<String, String>? headers; // Np. Referer, User-Agent
   final bool isWebView; // Czy źródło wymaga otwarcia w WebView (np. trudny player)
+  final String? automationScript; // Opcjonalny skrypt JS do automatyzacji klikania
 
   VideoSource({
     required this.url,
@@ -32,5 +33,6 @@ class VideoSource {
     required this.sourceName,
     this.headers,
     this.isWebView = false,
+    this.automationScript,
   });
 }

@@ -45,6 +45,7 @@ dependencies:
   html: ^0.15.6
   flutter_inappwebview: ^6.1.5
   screen_brightness: ^2.1.7
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

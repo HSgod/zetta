@@ -70,6 +70,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     context.push('/player', extra: PlayerArgs(
       item: widget.item, 
       videoUrl: source.url,
+      headers: source.headers,
+      automationScript: source.automationScript,
     ));
   }
 
@@ -174,42 +176,52 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           SliverAppBar(
             expandedHeight: 300,
             pinned: true,
-            stretch: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                widget.item.title,
-                style: const TextStyle(color: Colors.white),
-              ),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (widget.item.posterUrl != null && widget.item.posterUrl!.isNotEmpty)
-                    Image.network(
-                      widget.item.posterUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_,__,___) => Container(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: const Icon(Icons.movie_filter_rounded, size: 64),
-                      ),
-                    )
-                  else
-                    Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: const Icon(Icons.movie_filter_rounded, size: 64),
-                    ),
-                  
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black87],
-                        stops: [0.6, 1.0],
-                      ),
+            flexibleSpace: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Poster with safe loading
+                Builder(
+                  builder: (context) {
+                    final url = widget.item.posterUrl;
+                    if (url != null && url.isNotEmpty && url.startsWith('http')) {
+                      return Image.network(
+                        url,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                      );
+                    }
+                    return _buildPlaceholder();
+                  },
+                ),
+                // Gradient overlay
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black87],
+                      stops: [0.6, 1.0],
                     ),
                   ),
-                ],
-              ),
+                ),
+                // Title at the bottom
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                  child: Text(
+                    widget.item.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(blurRadius: 10, color: Colors.black, offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           
@@ -271,6 +283,13 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
         ],
       ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Icon(Icons.movie_filter_rounded, size: 64),
     );
   }
 

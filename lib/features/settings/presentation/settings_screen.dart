@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/theme_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -17,6 +18,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isDark = themeMode == ThemeMode.dark || 
                    (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final useMaterialYou = ref.watch(materialYouProvider);
+    final useGestures = ref.watch(playerGesturesProvider);
+    final preferredQuality = ref.watch(preferredQualityProvider);
 
     return Scaffold(
       body: CustomScrollView(
@@ -54,16 +57,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: 'Gesty wideo',
                     subtitle: 'Dwuklik aby przewijać o 10s',
                     icon: Icons.gesture_rounded,
-                    value: true,
-                    onChanged: (val) {},
+                    value: useGestures,
+                    onChanged: (val) => ref.read(playerGesturesProvider.notifier).toggle(),
                   ),
                 ]),
 
                 _buildSectionHeader('System'),
                 _buildSettingsCard([
                   _buildListTile(
-                    title: 'Wyczyść ciasteczka',
-                    subtitle: 'Rozwiązuje problemy ze snifferem i timerami',
+                    title: 'Wyczyść dane WebView',
+                    subtitle: 'Może rozwiązać problem z ładowaniem filmu',
                     icon: Icons.delete_sweep_rounded,
                     onTap: () => _showClearCacheDialog(context),
                   ),
@@ -71,13 +74,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                 _buildSectionHeader('O aplikacji'),
                 _buildSettingsCard([
-                  const ListTile(
-                    leading: Icon(Icons.verified_user_rounded),
-                    title: Text('Zetta v1.0.0'),
-                    subtitle: Text('Zbudowano z pasji do kina'),
+                  _buildListTile(
+                    title: 'Zetta v1.0.1',
+                    subtitle: 'Wersja stabilna',
+                    icon: Icons.verified_user_rounded,
+                  ),
+                  _buildListTile(
+                    title: 'Twórca',
+                    subtitle: 'HSgod',
+                    icon: Icons.terminal_rounded,
+                    onTap: () async {
+                      final url = Uri.parse('https://github.com/HSgod');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
+                    },
                   ),
                 ]),
-                const SizedBox(height: 32),
+                const SizedBox(height: 100), // Miejsce na pływający pasek
               ],
             ),
           ),

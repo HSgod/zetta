@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,29 +15,40 @@ class ScaffoldWithNavBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 640) {
-          // Wersja mobilna (Dolny pasek)
+          // Wersja mobilna (Dolny pasek - Custom Floating Pill)
           return Scaffold(
+            extendBody: true,
             body: navigationShell,
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (int index) => _onTap(context, index),
-              destinations: const <NavigationDestination>[
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Start',
+            bottomNavigationBar: Container(
+              height: 60,
+              margin: const EdgeInsets.fromLTRB(60, 0, 60, 30), // Mocniejszy 'pill'
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded),
+                        _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded),
+                        _buildNavItem(context, 2, Icons.settings_outlined, Icons.settings_rounded),
+                      ],
+                    ),
+                  ),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.search_outlined),
-                  selectedIcon: Icon(Icons.search),
-                  label: 'Szukaj',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: 'Ustawienia',
-                ),
-              ],
+              ),
             ),
           );
         } else {
@@ -81,6 +93,24 @@ class ScaffoldWithNavBar extends StatelessWidget {
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+
+  Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData selectedIcon) {
+    final isSelected = navigationShell.currentIndex == index;
+    return InkWell(
+      onTap: () => _onTap(context, index),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Icon(
+          isSelected ? selectedIcon : icon,
+          size: 28,
+          color: isSelected 
+              ? Theme.of(context).colorScheme.primary 
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
     );
   }
 }
