@@ -72,7 +72,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   void _navigateToPlayer(VideoSource source) {
     context.push('/player', extra: PlayerArgs(
       item: widget.item, 
-      videoUrl: source.url,
+      initialUrl: source.url,
       headers: source.headers,
       automationScript: source.automationScript,
     ));

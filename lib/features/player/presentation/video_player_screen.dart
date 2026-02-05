@@ -207,12 +207,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         alignment: Alignment.center,
         children: [
           // Hidden Sniffer (Only if we don't have a direct videoUrl)
-          if (widget.args.videoUrl == null)
+          // Jeśli nie mamy gotowego adresu wideo, uruchamiamy sniffera (WebView)
+          if (widget.args.videoUrl == null && widget.args.initialUrl != null)
             Positioned.fill(
               child: Offstage(
                 offstage: true, 
                 child: VideoSniffer(
-                  initialUrl: widget.args.item.url,
+                  initialUrl: widget.args.initialUrl!,
                   onStreamCaught: _startPlayback,
                   args: widget.args,
                 ),

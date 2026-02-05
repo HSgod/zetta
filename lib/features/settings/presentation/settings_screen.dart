@@ -36,7 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildSectionHeader('Wygląd'),
                 _buildSettingsCard([
                   _buildSwitchTile(
-                    title: 'Tryb Ciemny',
+                    title: 'Tryb ciemny',
                     subtitle: themeMode == ThemeMode.system ? 'Podążaj za systemem' : 'Zawsze włączony/wyłączony',
                     icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                     value: isDark,
@@ -75,7 +75,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildSectionHeader('O aplikacji'),
                 _buildSettingsCard([
                   _buildListTile(
-                    title: 'Zetta v1.0.1',
+                    title: 'Zetta v1.0.2',
                     subtitle: 'Wersja stabilna',
                     icon: Icons.verified_user_rounded,
                   ),
