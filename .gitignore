@@ -46,3 +46,7 @@ app.*.map.json
 
 # Environment variables
 .env
+
+# Project specific ignores
+assets/
+.metadata

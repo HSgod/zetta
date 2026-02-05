@@ -165,7 +165,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Wyczyścić ciasteczka?'),
-        content: const Text('Wszystkie ciasteczka WebView zostaną usunięte. To może pomóc, jeśli sniffer przestał działać.'),
+        content: const Text('Wszystkie ciasteczka WebView zostaną usunięte. To może pomóc, jeśli odtwarzacz przestał działać.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Anuluj')),
           FilledButton(

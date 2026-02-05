@@ -15,11 +15,15 @@ class HomeScreen extends ConsumerWidget {
         data: (items) => CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            const SliverAppBar(
+            SliverAppBar(
               floating: true,
               pinned: true,
-              title: Text('Zetta'),
-              centerTitle: false,
+              centerTitle: true,
+              title: Image.asset(
+                'assets/images/logoapp.webp',
+                height: 36,
+                errorBuilder: (context, error, stackTrace) => const Text('Zetta'),
+              ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
