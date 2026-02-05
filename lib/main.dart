@@ -1,18 +1,35 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
+Future<void> _clearAppCache() async {
+  try {
+    final tempDir = await getTemporaryDirectory();
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
+  } catch (e) {
+    debugPrint("Błąd podczas czyszczenia cache: $e");
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   await dotenv.load(fileName: ".env");
   MediaKit.ensureInitialized();
+  
+  // Czyścimy cache przy starcie
+  await _clearAppCache();
+  
   final prefs = await SharedPreferences.getInstance();
 
   runApp(

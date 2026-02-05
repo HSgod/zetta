@@ -77,7 +77,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     if (!mounted) return;
     if (streamUrl == _lastStreamUrl) return;
     _lastStreamUrl = streamUrl;
-
+    
     // Używamy nagłówków ze scrapera lub domyślnych dla Ekino
     final headers = widget.args.headers ?? {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -171,18 +171,17 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // Hidden Sniffer
-          if (_isLoading)
-            Positioned.fill(
-              child: Offstage(
-                offstage: true, 
-                child: VideoSniffer(
-                  initialUrl: widget.args.videoUrl,
-                  onStreamCaught: _startPlayback,
-                  args: widget.args,
-                ),
+          // Hidden Sniffer (Must be present to keep session/cookies alive)
+          Positioned.fill(
+            child: Offstage(
+              offstage: true, 
+              child: VideoSniffer(
+                initialUrl: widget.args.videoUrl,
+                onStreamCaught: _startPlayback,
+                args: widget.args,
               ),
             ),
+          ),
 
           // Player (Centered)
           if (!_isLoading)
@@ -426,7 +425,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 }
 
-class VideoSniffer extends StatelessWidget {
+class VideoSniffer extends StatefulWidget {
   final String initialUrl;
   final Function(String) onStreamCaught;
   final PlayerArgs args;
@@ -439,10 +438,15 @@ class VideoSniffer extends StatelessWidget {
   });
 
   @override
+  State<VideoSniffer> createState() => _VideoSnifferState();
+}
+
+class _VideoSnifferState extends State<VideoSniffer> {
+  @override
   Widget build(BuildContext context) {
     const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
     
-    final headers = args.headers ?? {
+    final headers = widget.args.headers ?? {
       'User-Agent': desktopUA,
       'Referer': 'https://ekino-tv.pl/',
     };
@@ -450,23 +454,15 @@ class VideoSniffer extends StatelessWidget {
     final defaultScript = r"""
             (function() {
               var clickInProgress = false;
-
               function attemptAutoClick() {
                 if (clickInProgress) return;
                 var currentUrl = window.location.href;
+                if (document.querySelector('#cf-challenge') || document.querySelector('.cf-turnstile')) return;
                 
-                if (document.querySelector('#cf-challenge') || document.querySelector('.cf-turnstile')) {
-                  return;
-                }
-
                 var timer = document.querySelector('#timer, .timer, #countdown, [class*="countdown"]');
                 if (timer) {
                   var timeTxt = timer.textContent.trim();
-                  var isCounting = (timeTxt.includes(':') || (!isNaN(parseInt(timeTxt)) && parseInt(timeTxt) > 0));
-                  if (isCounting && timeTxt !== '0' && timeTxt !== '00:00') {
-                    console.log('⏳ Czekam na koniec odliczania: ' + timeTxt);
-                    return; 
-                  }
+                  if (timeTxt !== '0' && timeTxt !== '00:00' && (timeTxt.includes(':') || !isNaN(parseInt(timeTxt)))) return;
                 }
 
                 if (currentUrl.indexOf('ekino-tv.pl') !== -1) {
@@ -479,18 +475,10 @@ class VideoSniffer extends StatelessWidget {
                     if (btnText === '' || btnText.indexOf('przejdź') !== -1 || btnText.indexOf('odtwarzania') !== -1 || targetBtn.classList.contains('buttonprch')) {
                       clickInProgress = true;
                       targetBtn.dataset.automationClicked = "true";
-                      console.log('✅ Znaleziono przycisk przejścia (' + btnText + '). Klikam...');
-                      
                       targetBtn.setAttribute('target', '_self');
-                      if (targetBtn.href && targetBtn.href.indexOf('http') === 0) {
-                        window.location.href = targetBtn.href;
-                      } else {
-                        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                        targetBtn.dispatchEvent(evt);
-                      }
-                      
+                      if (targetBtn.href && targetBtn.href.indexOf('http') === 0) window.location.href = targetBtn.href;
+                      else targetBtn.click();
                       setTimeout(function() { clickInProgress = false; }, 3000);
-                      return;
                     }
                   }
 
@@ -500,11 +488,9 @@ class VideoSniffer extends StatelessWidget {
                     if (parentLink) {
                       clickInProgress = true;
                       imgEntry.dataset.automationClicked = "true";
-                      console.log('✅ Znaleziono obrazek wejściowy. Klikam...');
                       parentLink.setAttribute('target', '_self');
                       parentLink.click();
                       setTimeout(function() { clickInProgress = false; }, 3000);
-                      return;
                     }
                   }
                 } 
@@ -516,10 +502,8 @@ class VideoSniffer extends StatelessWidget {
                     if (btn && btn.offsetParent !== null && !btn.dataset.automationClicked) {
                       clickInProgress = true;
                       btn.dataset.automationClicked = "true";
-                      console.log('✅ Klikam Play na stronie odtwarzacza');
                       btn.click();
                       setTimeout(function() { clickInProgress = false; }, 3000);
-                      return;
                     }
                   }
                 }
@@ -530,12 +514,9 @@ class VideoSniffer extends StatelessWidget {
 
     return InAppWebView(
       initialUrlRequest: URLRequest(
-        url: WebUri(initialUrl),
+        url: WebUri(widget.initialUrl),
         headers: headers,
       ),
-      onConsoleMessage: (controller, message) {
-        // Logi JS wyłączone w wersji stabilnej
-      },
       onCreateWindow: (controller, action) async {
         if (action.request.url != null) {
           controller.loadUrl(urlRequest: action.request);
@@ -544,7 +525,7 @@ class VideoSniffer extends StatelessWidget {
       },
       initialUserScripts: UnmodifiableListView<UserScript>([
         UserScript(
-          source: args.automationScript ?? defaultScript,
+          source: widget.args.automationScript ?? defaultScript,
           injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
           forMainFrameOnly: false,
         ),
@@ -558,13 +539,11 @@ class VideoSniffer extends StatelessWidget {
         databaseEnabled: true,
         useWideViewPort: true,
         userAgent: desktopUA,
-        allowFileAccessFromFileURLs: true,
-        allowUniversalAccessFromFileURLs: true,
       ),
       shouldInterceptRequest: (controller, request) async {
         final reqUrl = request.url.toString();
         if (reqUrl.contains('.m3u8') || (reqUrl.contains('.mp4') && !reqUrl.contains('ads'))) {
-          onStreamCaught(reqUrl);
+          widget.onStreamCaught(reqUrl);
         }
         return null;
       },
