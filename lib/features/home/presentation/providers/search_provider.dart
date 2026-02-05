@@ -111,7 +111,7 @@ final searchResultsProvider = FutureProvider<List<MediaItem>>((ref) async {
 
   
 
-    final available = await scraper.isAvailable(item.title);
+    final available = await scraper.isAvailable(item.title, item.type);
 
     return (item: item, available: available);
 

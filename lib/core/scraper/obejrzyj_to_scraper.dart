@@ -4,6 +4,8 @@ import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import 'base_scraper.dart';
 
+import '../../features/home/domain/media_item.dart';
+
 class ObejrzyjToScraper extends BaseScraper {
   @override
   String get name => 'Obejrzyj.to';
@@ -11,7 +13,7 @@ class ObejrzyjToScraper extends BaseScraper {
   final String _baseUrl = 'https://obejrzyj.to';
 
   @override
-  Future<List<SearchResult>> search(String title) async {
+  Future<List<SearchResult>> search(String title, MediaType type) async {
     final searchUrl = '$_baseUrl/search/${Uri.encodeComponent(title.toLowerCase())}';
     
     try {
@@ -25,6 +27,12 @@ class ObejrzyjToScraper extends BaseScraper {
                 var t = link.text.trim();
                 if (t.isEmpty) t = link.querySelector('img')?.attributes['alt'] ?? '';
                 if (href != null && t.isNotEmpty) {
+                    final isMovieLink = href.contains('/film/') || (href.contains('/titles/') && !href.contains('/serial/'));
+                    final isSerieLink = href.contains('/serial/');
+
+                    if (type == MediaType.movie && isSerieLink) continue;
+                    if (type == MediaType.series && isMovieLink && !isSerieLink) continue;
+
                     if (href.contains('/titles/') || href.contains('/film/') || href.contains('/serial/')) {
                         if (!href.startsWith('http')) href = '$_baseUrl$href';
                         if (!results.any((r) => r.url == href)) {

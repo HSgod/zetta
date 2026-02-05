@@ -1,9 +1,11 @@
+import '../../features/home/domain/media_item.dart';
+
 abstract class BaseScraper {
   String get name; // Nazwa serwisu np. "Filman"
 
   // Metoda szukająca filmu/serialu w serwisie
   // Zwraca listę URLi do podstron z wideo
-  Future<List<SearchResult>> search(String title);
+  Future<List<SearchResult>> search(String title, MediaType type);
 
   // Metoda wyciągająca linki do wideo z konkretnej podstrony
   Future<List<VideoSource>> getSources(SearchResult result);

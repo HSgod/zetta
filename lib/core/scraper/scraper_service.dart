@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/home/domain/media_item.dart';
 import 'base_scraper.dart';
 import 'ekino_scraper.dart';
 import 'obejrzyj_to_scraper.dart';
@@ -10,7 +11,7 @@ class ScraperService {
     ObejrzyjToScraper(),
   ];
 
-  Future<bool> isAvailable(String title) async {
+  Future<bool> isAvailable(String title, MediaType type) async {
     String cleanTitle = title.split(':').first.split('-').first.trim().toLowerCase();
     
     if (_scrapers.isEmpty) return false;
@@ -18,7 +19,7 @@ class ScraperService {
     // Tworzymy listę zadań sprawdzania dla każdego scrapera
     final List<Future<bool>> checks = _scrapers.map((scraper) async {
       try {
-        final searchResults = await scraper.search(cleanTitle);
+        final searchResults = await scraper.search(cleanTitle, type);
         return searchResults.any((r) => r.title.toLowerCase().contains(cleanTitle));
       } catch (e) {
         return false;
@@ -45,7 +46,7 @@ class ScraperService {
     return completer.future;
   }
 
-  Future<List<VideoSource>> findStream(String title, {int? season, int? episode}) async {
+  Future<List<VideoSource>> findStream(String title, MediaType type, {int? season, int? episode}) async {
     String cleanTitle = title.split(':').first.split('-').first.trim();
     
     final query = season != null 
@@ -57,7 +58,7 @@ class ScraperService {
     // Szukamy równolegle we wszystkich scraperach
     final results = await Future.wait(_scrapers.map((scraper) async {
       try {
-        final searchResults = await scraper.search(query);
+        final searchResults = await scraper.search(query, type);
         if (searchResults.isNotEmpty) {
           // Filtrujemy wyniki, aby tytuł się zgadzał (unikanie np. "Pomoc" zamiast "Pomoc domowa")
           final bestMatch = searchResults.firstWhere(
