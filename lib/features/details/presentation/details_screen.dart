@@ -322,16 +322,25 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   ),
                   const SizedBox(height: 24),
                   if (isMovie)
-                    FilledButton.icon(
-                      onPressed: _isLoading ? null : () => _playMedia(),
-                      icon: _isLoading 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.play_arrow),
-                      label: Text(_isLoading ? 'Szukam źródeł...' : 'Odtwórz'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final continueWatching = ref.watch(continueWatchingProvider);
+                        final isContinuing = continueWatching.any((e) => e.id == widget.item.id);
+                        
+                        return FilledButton.icon(
+                          onPressed: _isLoading ? null : () => _playMedia(),
+                          icon: _isLoading 
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.play_arrow),
+                          label: Text(_isLoading 
+                            ? 'Szukam źródeł...' 
+                            : (isContinuing ? 'Kontynuuj oglądanie' : 'Odtwórz')),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                        );
+                      },
                     )
                   else
                     const SizedBox.shrink(),

@@ -62,22 +62,60 @@ class FavoritesNotifier extends Notifier<List<MediaItem>> {
 
 final favoritesProvider = NotifierProvider<FavoritesNotifier, List<MediaItem>>(FavoritesNotifier.new);
 
-// Notifier dla Historii
 class HistoryNotifier extends Notifier<List<MediaItem>> {
+  static const _key = 'history';
+
   @override
-  List<MediaItem> build() => [];
+  List<MediaItem> build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final jsonList = prefs.getStringList(_key) ?? [];
+    return jsonList.map((s) => MediaItemJson.fromMap(json.decode(s))).toList();
+  }
   
   void addToHistory(MediaItem item) {
-    state = [item, ...state.where((e) => e.id != item.id)];
+    final prefs = ref.read(sharedPreferencesProvider);
+    // Usuwamy duplikat (jeśli istnieje) i dodajemy na początek
+    final newList = [item, ...state.where((e) => e.id != item.id)].take(20).toList();
+    state = newList;
+
+    final jsonList = state.map((e) => json.encode(e.toMap())).toList();
+    prefs.setStringList(_key, jsonList);
+  }
+
+  void clearHistory() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    state = [];
+    prefs.remove(_key);
   }
 }
 
 final historyProvider = NotifierProvider<HistoryNotifier, List<MediaItem>>(HistoryNotifier.new);
 
-// Notifier dla Kontynuuj oglądanie
 class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
+  static const _key = 'continue_watching';
+
   @override
-  List<MediaItem> build() => [];
+  List<MediaItem> build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final jsonList = prefs.getStringList(_key) ?? [];
+    return jsonList.map((s) => MediaItemJson.fromMap(json.decode(s))).toList();
+  }
+
+  void addToContinue(MediaItem item) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final newList = [item, ...state.where((e) => e.id != item.id)].take(10).toList();
+    state = newList;
+
+    final jsonList = state.map((e) => json.encode(e.toMap())).toList();
+    prefs.setStringList(_key, jsonList);
+  }
+
+  void removeFromContinue(String id) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    state = state.where((e) => e.id != id).toList();
+    final jsonList = state.map((e) => json.encode(e.toMap())).toList();
+    prefs.setStringList(_key, jsonList);
+  }
 }
 
 final continueWatchingProvider = NotifierProvider<ContinueWatchingNotifier, List<MediaItem>>(ContinueWatchingNotifier.new);

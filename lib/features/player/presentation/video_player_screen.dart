@@ -9,6 +9,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../library/presentation/providers/library_provider.dart';
 import 'player_args.dart';
 
 class VideoPlayerScreen extends ConsumerStatefulWidget {
@@ -78,6 +79,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     if (streamUrl == _lastStreamUrl) return;
     _lastStreamUrl = streamUrl;
     
+    // Dodajemy do Historii i Kontynuuj oglądanie
+    Future.microtask(() {
+      ref.read(historyProvider.notifier).addToHistory(widget.args.item);
+      ref.read(continueWatchingProvider.notifier).addToContinue(widget.args.item);
+    });
+
     // Używamy nagłówków ze scrapera lub domyślnych dla Ekino
     final headers = widget.args.headers ?? {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -97,13 +104,21 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Future<void> _saveProgress() async {
     if (_isLoading) return;
     final prefs = await SharedPreferences.getInstance();
-    final key = "progress_${widget.args.item.title}";
-    await prefs.setInt(key, player.state.position.inSeconds);
+    final key = "progress_${widget.args.item.id}";
+    final position = player.state.position.inSeconds;
+    final duration = player.state.duration.inSeconds;
+
+    await prefs.setInt(key, position);
+
+    // Jeśli obejrzano ponad 90% filmu, usuwamy go z sekcji "Kontynuuj"
+    if (duration > 0 && position > duration * 0.9) {
+      ref.read(continueWatchingProvider.notifier).removeFromContinue(widget.args.item.id);
+    }
   }
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final key = "progress_${widget.args.item.title}";
+    final key = "progress_${widget.args.item.id}";
     final savedSeconds = prefs.getInt(key);
     if (savedSeconds != null && savedSeconds > 10) {
       final duration = player.state.duration;
