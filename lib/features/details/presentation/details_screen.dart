@@ -169,110 +169,162 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final isMovie = widget.item.type == MediaType.movie;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 400,
             pinned: true,
-            flexibleSpace: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Poster with safe loading
-                Builder(
-                  builder: (context) {
-                    final url = widget.item.posterUrl;
-                    if (url != null && url.isNotEmpty && url.startsWith('http')) {
-                      return Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                      );
-                    }
-                    return _buildPlaceholder();
-                  },
+            stretch: true,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.black.withOpacity(0.3),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => context.pop(),
                 ),
-                // Gradient overlay
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black87],
-                      stops: [0.6, 1.0],
-                    ),
-                  ),
-                ),
-                // Title at the bottom
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
-                  child: Text(
-                    widget.item.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(blurRadius: 10, color: Colors.black, offset: Offset(0, 2)),
-                      ],
-                    ),
-                  ),
-                ),
+              ),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [
+                StretchMode.zoomBackground,
+                StretchMode.blurBackground,
               ],
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Poster with safe loading
+                  Builder(
+                    builder: (context) {
+                      final url = widget.item.posterUrl;
+                      if (url != null && url.isNotEmpty && url.startsWith('http')) {
+                        return Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                        );
+                      }
+                      return _buildPlaceholder();
+                    },
+                  ),
+                  // Gradient overlay
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black45,
+                          Colors.black,
+                        ],
+                        stops: [0.3, 0.7, 1.0],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    widget.item.title,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      Chip(
-                        label: Text(isMovie ? 'Film' : 'Serial'),
-                        avatar: Icon(
-                          isMovie ? Icons.movie : Icons.tv,
-                          size: 18,
+                      if (widget.item.releaseDate != null) ...[
+                        Text(
+                          widget.item.releaseDate!.split('-')[0],
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Text('•'),
+                        ),
+                      ],
+                      Icon(
+                        isMovie ? Icons.movie_outlined : Icons.tv_outlined,
+                        size: 16,
+                        color: theme.colorScheme.outline,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isMovie ? 'Film' : 'Serial',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.outline,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const Spacer(),
                       if (widget.item.rating != null)
-                        Chip(
-                          label: Text(widget.item.rating!.toStringAsFixed(1)),
-                          avatar: const Icon(Icons.star, color: Colors.amber, size: 18),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.star, color: Colors.amber, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.item.rating!.toStringAsFixed(1),
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Opis',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.item.description ?? 'Brak opisu.',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
                   const SizedBox(height: 24),
-                  
                   if (isMovie)
                     FilledButton.icon(
                       onPressed: _isLoading ? null : () => _playMedia(),
                       icon: _isLoading 
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.play_arrow),
-                      label: Text(_isLoading ? 'Szukam źródeł...' : 'Odtwórz Film'),
+                      label: Text(_isLoading ? 'Szukam źródeł...' : 'Odtwórz'),
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
+                        minimumSize: const Size.fromHeight(56),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     )
                   else
-                    _buildSeasonSelector(),
+                    const SizedBox.shrink(),
+                  
+                  const SizedBox(height: 24),
+                  Text(
+                    'Opis',
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.item.description ?? 'Brak opisu.',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  if (!isMovie) _buildSeasonSelector(),
                 ],
               ),
             ),
@@ -295,6 +347,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildSeasonSelector() {
     final tvDetails = ref.watch(tvDetailsProvider(widget.item.id));
+    final theme = Theme.of(context);
 
     return tvDetails.when(
       data: (data) {
@@ -306,28 +359,43 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Sezony', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<int>(
-              value: _selectedSeason,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              items: regularSeasons.map<DropdownMenuItem<int>>((season) {
-                return DropdownMenuItem(
-                  value: season['season_number'],
-                  child: Text(season['name'] ?? 'Sezon ${season['season_number']}'),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedSeason = value;
-                  });
-                }
-              },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Odcinki',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButton<int>(
+                    value: _selectedSeason,
+                    underline: const SizedBox(),
+                    items: regularSeasons.map<DropdownMenuItem<int>>((season) {
+                      return DropdownMenuItem(
+                        value: season['season_number'],
+                        child: Text(
+                          season['name'] ?? 'Sezon ${season['season_number']}',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedSeason = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
           ],
         );
       },
@@ -338,61 +406,107 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildEpisodeList() {
     final episodes = ref.watch(seasonEpisodesProvider((id: widget.item.id, season: _selectedSeason)));
+    final theme = Theme.of(context);
 
     return episodes.when(
       data: (episodeList) {
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final episode = episodeList[index];
-              return ListTile(
-                leading: episode.stillPath != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          '${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}',
-                          width: 100,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_,__,___) => Container(
-                            width: 100,
-                            height: 56,
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            child: const Icon(Icons.tv_rounded),
-                          ),
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final episode = episodeList[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Material(
+                    color: theme.colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _isLoading ? null : () {
+                        _playMedia(season: _selectedSeason, episode: episode.episodeNumber);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: episode.stillPath != null
+                                      ? Image.network(
+                                          '${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}',
+                                          width: 120,
+                                          height: 70,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_,__,___) => _buildEpisodePlaceholder(),
+                                        )
+                                      : _buildEpisodePlaceholder(),
+                                ),
+                                if (_isLoading)
+                                  const CircularProgressIndicator(strokeWidth: 2)
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.4),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${episode.episodeNumber}. ${episode.name}',
+                                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    episode.overview != null && episode.overview!.isNotEmpty 
+                                      ? episode.overview! 
+                                      : 'Brak opisu odcinka',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.outline,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      )
-                    : Container(
-                        width: 100,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.tv_rounded),
                       ),
-                title: Text('${episode.episodeNumber}. ${episode.name}'),
-                subtitle: Text(
-                  episode.overview != null && episode.overview!.isNotEmpty 
-                    ? episode.overview! 
-                    : 'Brak opisu odcinka',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: _isLoading 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.play_circle_outline),
-                onTap: _isLoading ? null : () {
-                  _playMedia(season: _selectedSeason, episode: episode.episodeNumber);
-                },
-              );
-            },
-            childCount: episodeList.length,
+                    ),
+                  ),
+                );
+              },
+              childCount: episodeList.length,
+            ),
           ),
         );
       },
       loading: () => const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))),
       error: (e, _) => SliverToBoxAdapter(child: Center(child: Text('Błąd: $e'))),
+    );
+  }
+
+  Widget _buildEpisodePlaceholder() {
+    return Container(
+      width: 120,
+      height: 70,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Icon(Icons.tv_rounded),
     );
   }
 }
