@@ -97,7 +97,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           },
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator()),
+                      loading: () => Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 24),
+                            Text(
+                              'Weryfikacja dostępności źródeł...',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'To może chwilę potrwać',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       error: (err, stack) => Center(child: Text('Błąd: $err')),
                     ),
             ),

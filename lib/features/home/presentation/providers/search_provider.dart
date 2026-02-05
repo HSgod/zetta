@@ -57,15 +57,35 @@ final searchResultsProvider = FutureProvider<List<MediaItem>>((ref) async {
 
   
 
-  final tmdbResults = await service.search(query);
+    final tmdbResults = await service.search(query);
 
   
 
-  // Filtrujemy wyniki: pokazujemy tylko te, które faktycznie są na scraperach.
+    
 
-  // Sprawdzamy dostępność równolegle dla wszystkich wyników z TMDB.
+  
 
-  final availabilityChecks = await Future.wait(tmdbResults.map((item) async {
+    // Ograniczamy do top 10 wyników, aby nie przeciążać scraperów i przyspieszyć wyszukiwanie
+
+  
+
+    final limitedResults = tmdbResults.take(10).toList();
+
+  
+
+    
+
+  
+
+    // Filtrujemy wyniki: pokazujemy tylko te, które faktycznie są na scraperach.
+
+  
+
+    final availabilityChecks = await Future.wait(limitedResults.map((item) async {
+
+  
+
+  
 
     final available = await scraper.isAvailable(item.title);
 

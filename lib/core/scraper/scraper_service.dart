@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'base_scraper.dart';
 import 'ekino_scraper.dart';
@@ -12,18 +13,36 @@ class ScraperService {
   Future<bool> isAvailable(String title) async {
     String cleanTitle = title.split(':').first.split('-').first.trim().toLowerCase();
     
-    // Sprawdzamy równolegle we wszystkich scraperach (tylko wyszukiwanie, bez wyciągania źródeł)
-    final checkResults = await Future.wait(_scrapers.map((scraper) async {
+    if (_scrapers.isEmpty) return false;
+
+    // Tworzymy listę zadań sprawdzania dla każdego scrapera
+    final List<Future<bool>> checks = _scrapers.map((scraper) async {
       try {
         final searchResults = await scraper.search(cleanTitle);
-        // Sprawdzamy czy którykolwiek wynik zawiera nasz tytuł
         return searchResults.any((r) => r.title.toLowerCase().contains(cleanTitle));
       } catch (e) {
         return false;
       }
-    }));
+    }).toList();
 
-    return checkResults.any((found) => found);
+    // Specjalna logika: czekamy na pierwszy, który zwróci TRUE.
+    // Jeśli wszystkie zwrócą FALSE, to zwracamy FALSE.
+    int finished = 0;
+    final completer = Completer<bool>();
+
+    for (var check in checks) {
+      check.then((found) {
+        if (found && !completer.isCompleted) {
+          completer.complete(true);
+        }
+        finished++;
+        if (finished == checks.length && !completer.isCompleted) {
+          completer.complete(false);
+        }
+      });
+    }
+
+    return completer.future;
   }
 
   Future<List<VideoSource>> findStream(String title, {int? season, int? episode}) async {
