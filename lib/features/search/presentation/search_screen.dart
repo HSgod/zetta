@@ -31,60 +31,79 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final query = ref.watch(searchQueryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _controller,
-          decoration: const InputDecoration(
-            hintText: 'Wpisz tytuł...',
-            border: InputBorder.none,
-          ),
-          autofocus: true,
-          onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
-        ),
-        actions: [
-          if (query.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                _controller.clear();
-                ref.read(searchQueryProvider.notifier).update('');
-              },
-            ),
-        ],
-      ),
-      body: query.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.search, size: 64, color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(height: 16),
-                  const Text('Znajdź swój ulubiony film'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: SearchBar(
+                controller: _controller,
+                hintText: 'Wpisz tytuł...',
+                leading: const Icon(Icons.search),
+                trailing: [
+                  if (query.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _controller.clear();
+                        ref.read(searchQueryProvider.notifier).update('');
+                      },
+                    ),
                 ],
+                onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
+                elevation: WidgetStateProperty.all(0),
+                backgroundColor: WidgetStateProperty.all(
+                  Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                ),
               ),
-            )
-          : searchResults.when(
-              data: (items) {
-                if (items.isEmpty) {
-                  return const Center(child: Text('Brak wyników'));
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 160,
-                    mainAxisSpacing: 24,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.6,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    return MediaCard(item: items[index]);
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Błąd: $err')),
             ),
+            Expanded(
+              child: query.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Znajdź swój ulubiony film',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : searchResults.when(
+                      data: (items) {
+                        if (items.isEmpty) {
+                          return const Center(child: Text('Brak wyników'));
+                        }
+                        return GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 160,
+                            mainAxisSpacing: 24,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 0.6,
+                          ),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            return MediaCard(item: items[index]);
+                          },
+                        );
+                      },
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(child: Text('Błąd: $err')),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
