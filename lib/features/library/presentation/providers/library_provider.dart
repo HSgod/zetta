@@ -82,6 +82,13 @@ class HistoryNotifier extends Notifier<List<MediaItem>> {
     prefs.setStringList(_key, jsonList);
   }
 
+  void removeFromHistory(String id) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    state = state.where((e) => e.id != id).toList();
+    final jsonList = state.map((e) => json.encode(e.toMap())).toList();
+    prefs.setStringList(_key, jsonList);
+  }
+
   void clearHistory() {
     final prefs = ref.read(sharedPreferencesProvider);
     state = [];

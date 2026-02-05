@@ -206,17 +206,18 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // Hidden Sniffer (Must be present to keep session/cookies alive)
-          Positioned.fill(
-            child: Offstage(
-              offstage: true, 
-              child: VideoSniffer(
-                initialUrl: widget.args.videoUrl,
-                onStreamCaught: _startPlayback,
-                args: widget.args,
+          // Hidden Sniffer (Only if we don't have a direct videoUrl)
+          if (widget.args.videoUrl == null)
+            Positioned.fill(
+              child: Offstage(
+                offstage: true, 
+                child: VideoSniffer(
+                  initialUrl: widget.args.item.url,
+                  onStreamCaught: _startPlayback,
+                  args: widget.args,
+                ),
               ),
             ),
-          ),
 
           // Player (Centered)
           if (!_isLoading)

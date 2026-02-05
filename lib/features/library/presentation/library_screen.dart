@@ -24,7 +24,7 @@ class LibraryScreen extends ConsumerWidget {
               if (listType == 'continue') {
                 ref.read(continueWatchingProvider.notifier).removeFromContinue(item.id);
               } else if (listType == 'history') {
-                // Dodamy metodę do historii jeśli trzeba, ale na razie obsłużmy continue
+                ref.read(historyProvider.notifier).removeFromHistory(item.id);
               } else if (listType == 'favorites') {
                 ref.read(favoritesProvider.notifier).toggleFavorite(item);
               }
