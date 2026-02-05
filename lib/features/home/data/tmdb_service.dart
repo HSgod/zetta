@@ -72,8 +72,36 @@ class TmdbService {
     }
   }
 
-  MediaItem _mapToMediaItem(Map<String, dynamic> json) {
-    final bool isMovie = json['media_type'] == 'movie' || json['title'] != null;
+  Future<List<MediaItem>> getPopularMovies() async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/movie/popular?api_key=$_apiKey&language=pl-PL'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List results = data['results'];
+      return results.map((json) => _mapToMediaItem(json, type: MediaType.movie)).toList();
+    } else {
+      throw Exception('Failed to load popular movies');
+    }
+  }
+
+  Future<List<MediaItem>> getPopularTV() async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/tv/popular?api_key=$_apiKey&language=pl-PL'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List results = data['results'];
+      return results.map((json) => _mapToMediaItem(json, type: MediaType.series)).toList();
+    } else {
+      throw Exception('Failed to load popular TV series');
+    }
+  }
+
+  MediaItem _mapToMediaItem(Map<String, dynamic> json, {MediaType? type}) {
+    final bool isMovie = type == MediaType.movie || (type == null && (json['media_type'] == 'movie' || json['title'] != null));
     return MediaItem(
       id: json['id'].toString(),
       title: (isMovie ? json['title'] : json['name']) ?? 'Brak tytułu',

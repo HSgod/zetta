@@ -10,6 +10,18 @@ final trendingProvider = FutureProvider<List<MediaItem>>((ref) async {
   return service.getTrending();
 });
 
+// Provider popularnych filmów
+final popularMoviesProvider = FutureProvider<List<MediaItem>>((ref) async {
+  final service = ref.watch(tmdbServiceProvider);
+  return service.getPopularMovies();
+});
+
+// Provider popularnych seriali
+final popularTVProvider = FutureProvider<List<MediaItem>>((ref) async {
+  final service = ref.watch(tmdbServiceProvider);
+  return service.getPopularTV();
+});
+
 // Stan wyszukiwania (zaimplementowany jako Notifier)
 class SearchQueryNotifier extends Notifier<String> {
   @override
