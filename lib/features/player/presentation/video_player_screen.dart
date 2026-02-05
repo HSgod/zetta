@@ -83,6 +83,16 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     Future.microtask(() {
       ref.read(historyProvider.notifier).addToHistory(widget.args.item);
       ref.read(continueWatchingProvider.notifier).addToContinue(widget.args.item);
+      
+      // Zapisujemy źródło dla "Kontynuuj"
+      ref.read(sourceHistoryProvider.notifier).saveSource(
+        widget.args.item.id,
+        SavedSource(
+          url: streamUrl,
+          headers: widget.args.headers,
+          automationScript: widget.args.automationScript,
+        ),
+      );
     });
 
     // Używamy nagłówków ze scrapera lub domyślnych dla Ekino
@@ -120,11 +130,18 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final prefs = await SharedPreferences.getInstance();
     final key = "progress_${widget.args.item.id}";
     final savedSeconds = prefs.getInt(key);
+    
     if (savedSeconds != null && savedSeconds > 10) {
-      final duration = player.state.duration;
-      if (duration.inSeconds > 0 && savedSeconds < duration.inSeconds - 10) {
-        player.seek(Duration(seconds: savedSeconds));
-      }
+      // Czekamy na załadowanie czasu trwania, aby wiedzieć czy możemy skoczyć
+      StreamSubscription? sub;
+      sub = player.stream.duration.listen((duration) {
+        if (duration.inSeconds > savedSeconds && duration.inSeconds > 0) {
+          player.seek(Duration(seconds: savedSeconds));
+          sub?.cancel();
+        }
+      });
+      // Zabezpieczenie na wypadek gdyby stream nigdy nie podał długości (live)
+      Future.delayed(const Duration(seconds: 10), () => sub?.cancel());
     }
   }
 

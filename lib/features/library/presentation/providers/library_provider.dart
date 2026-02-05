@@ -119,3 +119,43 @@ class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
 }
 
 final continueWatchingProvider = NotifierProvider<ContinueWatchingNotifier, List<MediaItem>>(ContinueWatchingNotifier.new);
+
+// Klasa do zapisu danych źródła wideo
+class SavedSource {
+  final String url;
+  final Map<String, String>? headers;
+  final String? automationScript;
+
+  SavedSource({required this.url, this.headers, this.automationScript});
+
+  Map<String, dynamic> toMap() => {
+    'url': url,
+    'headers': headers,
+    'automationScript': automationScript,
+  };
+
+  factory SavedSource.fromMap(Map<String, dynamic> map) => SavedSource(
+    url: map['url'],
+    headers: map['headers'] != null ? Map<String, String>.from(map['headers']) : null,
+    automationScript: map['automationScript'],
+  );
+}
+
+class SourceHistoryNotifier extends Notifier<void> {
+  @override
+  void build() {}
+
+  void saveSource(String mediaId, SavedSource source) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.setString('source_$mediaId', json.encode(source.toMap()));
+  }
+
+  SavedSource? getSource(String mediaId) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final data = prefs.getString('source_$mediaId');
+    if (data == null) return null;
+    return SavedSource.fromMap(json.decode(data));
+  }
+}
+
+final sourceHistoryProvider = NotifierProvider<SourceHistoryNotifier, void>(SourceHistoryNotifier.new);

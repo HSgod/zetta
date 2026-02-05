@@ -328,7 +328,23 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                         final isContinuing = continueWatching.any((e) => e.id == widget.item.id);
                         
                         return FilledButton.icon(
-                          onPressed: _isLoading ? null : () => _playMedia(),
+                          onPressed: _isLoading ? null : () async {
+                            if (isContinuing) {
+                              // Próbujemy odpalić bezpośrednio zapisane źródło
+                              final saved = ref.read(sourceHistoryProvider.notifier).getSource(widget.item.id);
+                              if (saved != null) {
+                                context.push('/player', extra: PlayerArgs(
+                                  item: widget.item, 
+                                  videoUrl: saved.url,
+                                  headers: saved.headers,
+                                  automationScript: saved.automationScript,
+                                ));
+                                return;
+                              }
+                            }
+                            // Jeśli nie ma zapisanego źródła lub to nowy seans, szukamy normalnie
+                            _playMedia();
+                          },
                           icon: _isLoading 
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.play_arrow),
