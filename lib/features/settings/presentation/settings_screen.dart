@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                    (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final useMaterialYou = ref.watch(materialYouProvider);
     final useGestures = ref.watch(playerGesturesProvider);
-    final preferredQuality = ref.watch(preferredQualityProvider);
 
     return Scaffold(
       body: CustomScrollView(
@@ -103,7 +103,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                 ]),
-                const SizedBox(height: 100), // Miejsce na pływający pasek
+                const SizedBox(height: 100),
               ],
             ),
           ),
