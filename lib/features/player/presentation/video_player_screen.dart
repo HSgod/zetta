@@ -28,8 +28,10 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _showControls = true;
-  bool _showWebViewDebug = false; // Flaga wy\u0142\u0105czona - przywraca spinner
+  bool _showWebViewDebug = false;
+  bool _isExiting = false;
   Timer? _hideControlsTimer;
+  }
   Timer? _progressSaveTimer;
   Timer? _timeoutTimer;
   
@@ -48,8 +50,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   void _startTimeoutTimer() {
     _timeoutTimer?.cancel();
-    _timeoutTimer = Timer(const Duration(seconds: 15), () {
-      if (mounted && _isLoading) {
+    _timeoutTimer = Timer(const Duration(seconds: 30), () {
+      if (mounted && _isLoading && !_isExiting) {
         setState(() {
           _isLoading = false;
           _hasError = true;
@@ -88,12 +90,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   void _onLoadSuccess() {
     Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted && _isLoading) {
+      if (mounted && _isLoading && !_isExiting) {
         _timeoutTimer?.cancel();
         setState(() {
           _isLoading = false;
           _hasError = false;
-          _showWebViewDebug = false; // Ukryj po sukcesie
+          _showWebViewDebug = false;
         });
         _startHideTimer();
         _startProgressTimer();
@@ -103,8 +105,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   String? _lastStreamUrl;
   void _startPlayback(String streamUrl) {
-    if (!mounted) return;
-    // Je\u015bli to ten sam URL co przed chwil\u0105, nic nie r\u00f3b
+    if (!mounted || _isExiting) return;
     if (streamUrl == _lastStreamUrl) return;
     _lastStreamUrl = streamUrl;
     
@@ -127,7 +128,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
     final desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
     
-    // KLUCZOWE DLA FILEMOON: Referer musi by\u0107 PE\u0141NYM adresem iframe (initialUrl)
     final Map<String, String> headers = {
       'User-Agent': desktopUA,
       'Referer': widget.args.initialUrl ?? 'https://obejrzyj.to/',
@@ -140,18 +140,16 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       } catch (_) {}
     }
 
-    // Je\u015bli scraper przekaza\u0142 w\u0142asne nag\u0142\u00f3wki, po\u0142\u0105cz je (priorytet dla tych przekazanych)
     if (widget.args.headers != null) {
       headers.addAll(widget.args.headers!);
     }
 
-    // ZAWSZE stopujemy player przed otwarciem, aby wymusi\u0107 reset bufora i obrazu
     player.stop().then((_) {
+      if (_isExiting) return;
       player.open(Media(streamUrl, httpHeaders: headers)).then((_) {
         _loadProgress();
-        // KLUCZOWE DLA FILEMOON: Lekki "seek" po starcie wymusza od\u015bwie\u017cenie klatki wideo
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && player.state.playing) {
+          if (mounted && player.state.playing && !_isExiting) {
             player.seek(player.state.position + const Duration(milliseconds: 100));
           }
         });
@@ -167,7 +165,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _saveProgress() async {
-    if (_isLoading || _hasError) return;
+    if (_isLoading || _hasError || _isExiting) return;
     final prefs = await SharedPreferences.getInstance();
     final key = "progress_${widget.args.item.id}";
     final position = player.state.position.inSeconds;
@@ -190,7 +188,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       sub = player.stream.buffer.listen((buffer) {
         if (buffer.inSeconds > 0) {
           Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
+            if (mounted && !_isExiting) {
               player.seek(Duration(seconds: savedSeconds));
             }
           });
@@ -210,23 +208,53 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _saveProgress();
+  void _toggleControls() {
+    if (_isExiting) return;
+    setState(() => _showControls = !_showControls);
+    if (_showControls) _startHideTimer();
+  }
+
+  void _showControlsBriefly() {
+    if (_isExiting) return;
+    setState(() => _showControls = true);
+    _startHideTimer();
+  }
+
+  Future<void> _handleBack() async {
+    if (_isExiting) return;
+    setState(() => _isExiting = true);
+    
     _hideControlsTimer?.cancel();
     _progressSaveTimer?.cancel();
     _timeoutTimer?.cancel();
+    
+    await player.stop();
+    await player.dispose();
+    
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!_isExiting) {
+      _saveProgress();
+      _hideControlsTimer?.cancel();
+      _progressSaveTimer?.cancel();
+      _timeoutTimer?.cancel();
+      player.dispose();
+    }
     for (var s in _subscriptions) {
       s.cancel();
     }
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    player.dispose();
     super.dispose();
   }
 
   void _onDoubleTapDown(TapDownDetails details, double screenWidth) {
-    if (_hasError) return;
+    if (_hasError || _isExiting) return;
     final gesturesEnabled = ref.read(playerGesturesProvider);
     if (!gesturesEnabled) return;
 
@@ -254,128 +282,143 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isExiting) return const Scaffold(backgroundColor: Colors.black);
+    
     final padding = MediaQuery.of(context).padding;
     
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_hasError)
-            Positioned.fill(
-              child: Stack(
-                children: [
-                  VideoSniffer(
-                    initialUrl: widget.args.initialUrl!,
-                    onStreamCaught: _startPlayback,
-                    args: widget.args,
-                  ),
-                  // Pasek informacyjny o debugowaniu
-                  Positioned(
-                    top: 40, left: 20,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.red.withOpacity(0.8), borderRadius: BorderRadius.circular(8)),
-                      child: const Text("DEBUG MODE: PODGL\u0104D SNIFFERA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          if (!_isLoading && !_hasError)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() => _showControls = !_showControls);
-                  if (_showControls) _startHideTimer();
-                },
-                onDoubleTapDown: (details) => _onDoubleTapDown(details, MediaQuery.of(context).size.width),
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.select): () => _toggleControls(),
+        const SingleActivator(LogicalKeyboardKey.enter): () => _toggleControls(),
+        const SingleActivator(LogicalKeyboardKey.arrowUp): () => _showControlsBriefly(),
+        const SingleActivator(LogicalKeyboardKey.arrowDown): () => _showControlsBriefly(),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft): () {
+          player.seek(player.state.position - const Duration(seconds: 10));
+          _showControlsBriefly();
+        },
+        const SingleActivator(LogicalKeyboardKey.arrowRight): () {
+          player.seek(player.state.position + const Duration(seconds: 10));
+          _showControlsBriefly();
+        },
+        const SingleActivator(LogicalKeyboardKey.mediaPlayPause): () => player.playOrPause(),
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_hasError && !_isExiting)
+              Positioned.fill(
                 child: Stack(
-                  fit: StackFit.expand,
                   children: [
-                    Video(
-                      controller: controller,
-                      controls: NoVideoControls,
-                      fit: _videoFill,
+                    VideoSniffer(
+                      initialUrl: widget.args.initialUrl!,
+                      onStreamCaught: _startPlayback,
+                      args: widget.args,
                     ),
-                    if (_gestureType != null) _buildGestureOverlay(),
-                    _buildMD3Controls(context, padding),
-                    StreamBuilder<bool>(
-                      stream: player.stream.buffering,
-                      builder: (context, snapshot) {
-                        if (snapshot.data == true) {
-                          return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
-                        }
-                        return const SizedBox.shrink();
-                      },
+                    Positioned(
+                      top: 40, left: 20,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.8), borderRadius: BorderRadius.circular(8)),
+                        child: const Text("DEBUG MODE: PODGLĄD SNIFFERA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
 
-          if (_hasError)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+            if (!_isLoading && !_hasError && !_isExiting)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _toggleControls,
+                  onDoubleTapDown: (details) => _onDoubleTapDown(details, MediaQuery.of(context).size.width),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "PROBLEM ZE \u0179R\u00d3D\u0141EM",
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                      Video(
+                        controller: controller,
+                        controls: NoVideoControls,
+                        fit: _videoFill,
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "Nie uda\u0142o si\u0119 za\u0142adowa\u0107 wideo w wyznaczonym czasie.\nSpr\u00f3buj u\u017cy\u0107 innego \u017ar\u00f3d\u0142a.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      if (_gestureType != null) _buildGestureOverlay(),
+                      _buildMD3Controls(context, padding),
+                      StreamBuilder<bool>(
+                        stream: player.stream.buffering,
+                        builder: (context, snapshot) {
+                          if (snapshot.data == true) {
+                            return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
-                      const SizedBox(height: 32),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text("WR\u00d3\u0106 DO WYBORU"),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white30),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (_hasError && !_isExiting)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "PROBLEM ZE ŹRÓDŁEM",
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Nie udało się załadować wideo w wyznaczonym czasie.\nSpróbuj użyć innego źródła.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                        const SizedBox(height: 32),
+                        OutlinedButton.icon(
+                          onPressed: _handleBack,
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text("WRÓĆ DO WYBORU"),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white30),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-          if (_isLoading && !_showWebViewDebug)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 40, height: 40,
-                        child: CircularProgressIndicator(color: Colors.redAccent, strokeWidth: 3),
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "\u0141\u0104CZENIE Z SERWEREM",
-                        style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
-                      ),
-                    ],
+            if (_isLoading && !_showWebViewDebug && !_isExiting)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 40, height: 40,
+                          child: CircularProgressIndicator(color: Colors.redAccent, strokeWidth: 3),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "ŁĄCZENIE Z SERWEREM",
+                          style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -422,7 +465,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               ),
               child: Row(
                 children: [
-                  _buildPillButton(Icons.arrow_back_ios_new_rounded, () => Navigator.pop(context)),
+                  _buildPillButton(Icons.arrow_back_ios_new_rounded, _handleBack),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
@@ -522,8 +565,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_formatDuration(pos), style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()])),
-                  Text(_formatDuration(dur), style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()])),
+                  Text(_formatDuration(pos), style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                  Text(_formatDuration(dur), style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -595,8 +638,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
               
               function attemptAutoClick() {
                 if (attempts++ > maxAttempts) return;
-                
-                // 1. Sprawd\u017a czy jest weryfikacja
                 const bodyText = document.body.innerText;
                 if (bodyText.includes('Verifying you are human') || 
                     bodyText.includes('Checking your browser') || 
@@ -605,7 +646,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                 var currentUrl = window.location.href;
                 var isUltra = currentUrl.indexOf('ultrastream') !== -1 || currentUrl.indexOf('streamly') !== -1;
 
-                // 2. USUWANIE NAK\u0141ADEK (Reklamy/Overlays)
                 if (isUltra || attempts % 5 === 0) {
                   document.querySelectorAll('div').forEach(el => {
                     const z = parseInt(window.getComputedStyle(el).zIndex);
@@ -615,13 +655,11 @@ class _VideoSnifferState extends State<VideoSniffer> {
                   });
                 }
 
-                // Wymuszenie startu
                 document.querySelectorAll('video').forEach(v => { 
                   v.muted = true; 
                   if (v.paused) v.play().catch(() => {});
                 });
                 
-                // EKINO-TV
                 if (currentUrl.indexOf('ekino-tv.pl') !== -1) {
                   var startImg = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
                   if (startImg && !startImg.dataset.automationClicked) {
@@ -643,7 +681,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                   }
                 } 
                 
-                // Uniwersalne Play
                 var playSelectors = [
                   '.player-button',
                   '.vjs-big-play-button', 
@@ -662,13 +699,10 @@ class _VideoSnifferState extends State<VideoSniffer> {
                   var btn = document.querySelector(playSelectors[i]);
                   if (btn && btn.offsetParent !== null) {
                     if (isUltra && !ultraClicksDone) {
-                      console.log("UltraStream: Wykonuj\u0119 agresywne klikni\u0119cia...");
-                      for(var j=0; j<3; j++) {
-                        btn.click();
-                        btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
-                        btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
-                        btn.dispatchEvent(new MouseEvent('click', {bubbles: true}));
-                      }
+                      btn.click();
+                      btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+                      btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
+                      btn.dispatchEvent(new MouseEvent('click', {bubbles: true}));
                       ultraClicksDone = true;
                       return;
                     } else if (!isUltra && !btn.dataset.automationClicked) {
@@ -678,8 +712,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                     }
                   }
                 }
-                
-                // Klik w \u015brodek co 15s jako fallback
                 if (attempts % 15 === 0) {
                   const el = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
                   if (el) el.click();
@@ -710,7 +742,7 @@ class _VideoSnifferState extends State<VideoSniffer> {
       ]),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
-        useShouldInterceptRequest: false, // Wy\u0142\u0105czone, aby unikn\u0105\u0107 b\u0142\u0119d\u00f3w SSL (-107)
+        useShouldInterceptRequest: false, 
         useOnLoadResource: true, 
         preferredContentMode: UserPreferredContentMode.DESKTOP,
         mediaPlaybackRequiresUserGesture: false,
@@ -726,24 +758,16 @@ class _VideoSnifferState extends State<VideoSniffer> {
       },
       onLoadResource: (controller, resource) {
         final reqUrl = resource.url.toString();
-        // Pomijaj analityk\u0119 UltraStream, kt\u00f3ra mo\u017ce wywala\u0107 Request Invalid
         if (reqUrl.contains('tracker') || reqUrl.contains('analytics') || reqUrl.contains('collect')) return;
-
         if (reqUrl.contains('.m3u8') || reqUrl.contains('.mp4') || reqUrl.contains('/hls/')) {
           if (reqUrl.contains('google.com') || reqUrl.contains('facebook.com') || reqUrl.contains('doubleclick')) return;
-          
-          print('VideoSniffer: Przechwycono: $reqUrl');
           widget.onStreamCaught(reqUrl);
-          
           Future.delayed(const Duration(seconds: 30), () {
             if (mounted) {
               controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
             }
           });
         }
-      },
-      onConsoleMessage: (controller, consoleMessage) {
-        print("WebView Console: ${consoleMessage.message}");
       },
     );
   }

@@ -15,13 +15,12 @@ class ScaffoldWithNavBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 640) {
-          // Wersja mobilna (Dolny pasek - Custom Floating Pill)
           return Scaffold(
             extendBody: true,
             body: navigationShell,
             bottomNavigationBar: Container(
               height: 60,
-              margin: const EdgeInsets.fromLTRB(20, 0, 20, 30), // Zmniejszony margines z 60 na 20
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
@@ -54,42 +53,47 @@ class ScaffoldWithNavBar extends StatelessWidget {
             ),
           );
         } else {
-          // Wersja desktopowa (Boczny pasek)
           return Scaffold(
             body: Row(
               children: [
-                NavigationRail(
-                  selectedIndex: navigationShell.currentIndex,
-                  onDestinationSelected: (int index) => _onTap(context, index),
-                  labelType: NavigationRailLabelType.all,
-                  groupAlignment: -0.9, // Elementy na górze
-                  destinations: const <NavigationRailDestination>[
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home),
-                      label: Text('Start'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.search_outlined),
-                      selectedIcon: Icon(Icons.search),
-                      label: Text('Szukaj'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.explore_outlined),
-                      selectedIcon: Icon(Icons.explore),
-                      label: Text('Odkrywaj'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.video_library_outlined),
-                      selectedIcon: Icon(Icons.video_library),
-                      label: Text('Biblioteka'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.settings_outlined),
-                      selectedIcon: Icon(Icons.settings),
-                      label: Text('Ustawienia'),
-                    ),
-                  ],
+                FocusTraversalGroup(
+                  child: NavigationRail(
+                    selectedIndex: navigationShell.currentIndex,
+                    onDestinationSelected: (int index) => _onTap(context, index),
+                    labelType: NavigationRailLabelType.all,
+                    groupAlignment: -0.9,
+                    unselectedIconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                    selectedIconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
+                    unselectedLabelTextStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                    selectedLabelTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                    destinations: const <NavigationRailDestination>[
+                      NavigationRailDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home),
+                        label: Text('Start'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.search_outlined),
+                        selectedIcon: Icon(Icons.search),
+                        label: Text('Szukaj'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.explore_outlined),
+                        selectedIcon: Icon(Icons.explore),
+                        label: Text('Odkrywaj'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.video_library_outlined),
+                        selectedIcon: Icon(Icons.video_library),
+                        label: Text('Biblioteka'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.settings_outlined),
+                        selectedIcon: Icon(Icons.settings),
+                        label: Text('Ustawienia'),
+                      ),
+                    ],
+                  ),
                 ),
                 const VerticalDivider(thickness: 1, width: 1),
                 Expanded(child: navigationShell),
