@@ -10,7 +10,7 @@ Zbudowana we Flutterze, z pełnym wsparciem dla **Windows** oraz **Android**, z 
 - 🌟 **Własna biblioteka**: Twórz swoją bibliotekę filmów i seriali, zakładki z ulubionymi filmami, z historią oglądania, a także z możliwością kontynuowania oglądania po czasie.
 - 🎨 **Material 3 Expressive**: Piękny, nowoczesny interfejs z dynamicznymi kolorami.
 - 🌓 **Tryb Ciemny/Jasny**: Pełna obsługa motywów systemowych.
-- 💻 **Wieloplatformowość**: Aplikacja działająca na Androidzie oraz Windowsie.
+- 💻 **Wieloplatformowość**: Aplikacja działająca na Androidzie, Windowsie oraz Android TV.
 
 ## 🚀 Technologie
 - **Framework:** [Flutter](https://flutter.dev)
@@ -21,6 +21,7 @@ Zbudowana we Flutterze, z pełnym wsparciem dla **Windows** oraz **Android**, z 
 ## Obsługiwane strony:
 - **Ekino-TV**
 - **Obejrzyj.to**
+- **Zaluknij.cc** (w trakcie rozwoju)
 - **Filman.cc** (w trakcie rozwoju)
 - **Zeriun.cc** (w trakcie rozwoju)
 - **CDA-HD.cc** (w trakcie rozwoju)

@@ -12,13 +12,11 @@ import '../../player/presentation/player_args.dart';
 import '../../home/presentation/widgets/media_card.dart';
 import '../../library/presentation/providers/library_provider.dart';
 
-// Provider dla detali serialu (liczba sezonów)
 final tvDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) async {
   final service = ref.watch(tmdbServiceProvider);
   return service.getTVDetails(id);
 });
 
-// Provider dla odcinków konkretnego sezonu
 final seasonEpisodesProvider = FutureProvider.family<List<Episode>, ({String id, int season})>((ref, arg) async {
   final service = ref.watch(tmdbServiceProvider);
   return service.getSeasonEpisodes(arg.id, arg.season);
@@ -39,10 +37,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Future<void> _playMedia({int? season, int? episode}) async {
     setState(() => _isLoading = true);
-    
     try {
       final scraper = ref.read(scraperServiceProvider);
-      
       final sources = await scraper.findStream(
         widget.item.title,
         widget.item.type,
@@ -51,7 +47,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
 
       if (sources.isNotEmpty && mounted) {
-        // Pobieramy zapisane \u017ar\u00f3d\u0142o dla tego elementu
         final saved = ref.read(sourceHistoryProvider.notifier).getSource(widget.item.id);
         _showSourcePicker(sources, savedSource: saved);
       } else {
@@ -83,7 +78,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   void _showSourcePicker(List<VideoSource> sources, {SavedSource? savedSource}) {
-    // Sortowanie: je\u015bli mamy zapisane \u017ar\u00f3d\u0142o (matchujemy po pageUrl), przesuwamy je na g\u00f3r\u0119
     final List<VideoSource> sortedSources = List.from(sources);
     if (savedSource != null && savedSource.pageUrl != null) {
       final savedIdx = sortedSources.indexWhere((s) => s.url == savedSource.pageUrl);
@@ -117,9 +111,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 ),
                 Text(
                   'Wybierz źródło wideo',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 Flexible(
@@ -137,13 +129,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                         selectedTileColor: Colors.green.withOpacity(0.1),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         leading: CircleAvatar(
-                          backgroundColor: isSuggested 
-                              ? Colors.green 
-                              : Theme.of(context).colorScheme.primaryContainer,
+                          backgroundColor: isSuggested ? Colors.green : Theme.of(context).colorScheme.primaryContainer,
                           child: Icon(
-                            isSuggested ? Icons.history : (source.sourceName.toLowerCase().contains('ekino') 
-                              ? Icons.movie_filter 
-                              : Icons.language),
+                            isSuggested ? Icons.history : (source.sourceName.toLowerCase().contains('ekino') ? Icons.movie_filter : Icons.language),
                             color: isSuggested ? Colors.white : Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
                         ),
@@ -151,28 +139,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                           source.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: isSuggested ? FontWeight.bold : FontWeight.w600,
-                            color: isSuggested ? Colors.green : null,
-                          ),
+                          style: TextStyle(fontWeight: isSuggested ? FontWeight.bold : FontWeight.w600, color: isSuggested ? Colors.green : null),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (isSuggested)
-                              const Text(
-                                'ŹRÓDŁO DO KONTYNUOWANIA OGLĄDANIA',
-                                style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
+                              const Text('ŹRÓDŁO DO KONTYNUOWANIA OGLĄDANIA', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
                             Row(
                               children: [
-                                Text(
-                                  source.sourceName,
-                                  style: TextStyle(
-                                    color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                Text(source.sourceName, style: TextStyle(color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
                                 const SizedBox(width: 8),
                                 const Text('•'),
                                 const SizedBox(width: 8),
@@ -181,11 +157,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                             ),
                           ],
                         ),
-                        trailing: Icon(
-                          Icons.play_circle_fill,
-                          color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary,
-                          size: 32,
-                        ),
+                        trailing: Icon(Icons.play_circle_fill, color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary, size: 32),
                         onTap: () {
                           Navigator.pop(context);
                           _navigateToPlayer(source);
@@ -206,307 +178,244 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget build(BuildContext context) {
     final isMovie = widget.item.type == MediaType.movie;
     final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+    final isWide = size.width > 900;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: 400,
-            pinned: true,
-            stretch: true,
-            leading: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withOpacity(0.3),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => context.pop(),
-                ),
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Colors.black.withOpacity(0.3),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final favorites = ref.watch(favoritesProvider);
-                      final isFav = favorites.any((e) => e.id == widget.item.id);
-                      return IconButton(
-                        icon: Icon(
-                          isFav ? Icons.favorite : Icons.favorite_border,
-                          color: isFav ? Colors.red : Colors.white,
-                        ),
-                        onPressed: () {
-                          HapticFeedback.mediumImpact();
-                          ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [
-                StretchMode.zoomBackground,
-                StretchMode.blurBackground,
-              ],
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Poster with safe loading
-                  Builder(
-                    builder: (context) {
-                      final url = widget.item.posterUrl;
-                      if (url != null && url.isNotEmpty && url.startsWith('http')) {
-                        return Image.network(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                        );
-                      }
-                      return _buildPlaceholder();
-                    },
-                  ),
-                  // Gradient overlay
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black45,
-                          Colors.black,
-                        ],
-                        stops: [0.3, 0.7, 1.0],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
+          if (!isWide) _buildMobileAppBar(theme),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.item.title,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (widget.item.releaseDate != null) ...[
-                        Text(
-                          widget.item.releaseDate!.split('-')[0],
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.outline,
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text('•'),
-                        ),
-                      ],
-                      Icon(
-                        isMovie ? Icons.movie_outlined : Icons.tv_outlined,
-                        size: 16,
-                        color: theme.colorScheme.outline,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isMovie ? 'Film' : 'Serial',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (widget.item.rating != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.item.rating!.toStringAsFixed(1),
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  if (isMovie)
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final continueWatching = ref.watch(continueWatchingProvider);
-                        final isContinuing = continueWatching.any((e) => e.id == widget.item.id);
-                        
-                        return FilledButton.icon(
-                          onPressed: _isLoading ? null : () async {
-                            _playMedia();
-                          },
-                          icon: _isLoading 
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.play_arrow),
-                          label: Text(_isLoading 
-                            ? 'Szukam źródeł...' 
-                            : (isContinuing ? 'Kontynuuj oglądanie' : 'Odtwórz')),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(56),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  
-                  const SizedBox(height: 24),
-                  Text(
-                    'Opis',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.item.description ?? 'Brak opisu.',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.8),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  if (!isMovie) _buildSeasonSelector(),
-                ],
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 40 : 20,
+                vertical: isWide ? 30 : 20,
               ),
+              child: isWide ? _buildWideLayout(theme, isMovie) : _buildMobileLayout(theme, isMovie),
             ),
           ),
-
           if (!isMovie) _buildEpisodeList(),
-          
-          SliverToBoxAdapter(
-            child: _buildRecommendations(),
-          ),
-          
           const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
         ],
       ),
     );
   }
 
-  Widget _buildRecommendations() {
-    final recommendations = ref.watch(recommendationsProvider((id: widget.item.id, type: widget.item.type)));
-    final theme = Theme.of(context);
-
-    return recommendations.when(
-      data: (items) {
-        if (items.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildMobileAppBar(ThemeData theme) {
+    return SliverAppBar(
+      expandedHeight: 400,
+      pinned: true,
+      stretch: true,
+      leading: _buildBackButton(),
+      actions: [_buildFavoriteButton()],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-              child: Text(
-                'Podobne treści',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            SizedBox(
-              height: 260,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: items.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  return SizedBox(
-                    width: 150,
-                    child: MediaCard(item: items[index]),
-                  );
-                },
+            _buildPosterImage(),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black45, Colors.black],
+                  stops: [0.3, 0.7, 1.0],
+                ),
               ),
             ),
           ],
-        );
-      },
-      loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
-      error: (err, _) => const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 
+  Widget _buildWideLayout(ThemeData theme, bool isMovie) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            width: 220,
+            child: AspectRatio(
+              aspectRatio: 2/3,
+              child: _buildPosterImage(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 40),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.item.title,
+                      style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                    ),
+                  ),
+                  _buildFavoriteButton(isLarge: true),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildMetadataRow(theme, isMovie),
+              const SizedBox(height: 24),
+              if (isMovie) _buildPlayButton(theme),
+              const SizedBox(height: 24),
+              Text('Opis', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                widget.item.description ?? 'Brak opisu.',
+                maxLines: 6,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7), height: 1.3),
+              ),
+              const SizedBox(height: 24),
+              if (!isMovie) _buildSeasonSelector(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(ThemeData theme, bool isMovie) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.item.title, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        _buildMetadataRow(theme, isMovie),
+        const SizedBox(height: 24),
+        if (isMovie) _buildPlayButton(theme),
+        const SizedBox(height: 24),
+        Text('Opis', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(widget.item.description ?? 'Brak opisu.', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.8), height: 1.5)),
+        const SizedBox(height: 32),
+        if (!isMovie) _buildSeasonSelector(),
+      ],
+    );
+  }
+
+  Widget _buildMetadataRow(ThemeData theme, bool isMovie) {
+    return Row(
+      children: [
+        if (widget.item.releaseDate != null) ...[
+          Text(widget.item.releaseDate!.split('-')[0], style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary)),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('•')),
+        ],
+        Icon(isMovie ? Icons.movie_outlined : Icons.tv_outlined, size: 18, color: theme.colorScheme.outline),
+        const SizedBox(width: 8),
+        Text(isMovie ? 'Film' : 'Serial', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.outline)),
+        const Spacer(),
+        if (widget.item.rating != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                const Icon(Icons.star, color: Colors.amber, size: 18),
+                const SizedBox(width: 6),
+                Text(widget.item.rating!.toStringAsFixed(1), style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPlayButton(ThemeData theme) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final continueWatching = ref.watch(continueWatchingProvider);
+        final isContinuing = continueWatching.any((e) => e.id == widget.item.id);
+        return FilledButton.icon(
+          onPressed: _isLoading ? null : () => _playMedia(),
+          icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.play_arrow, size: 28),
+          label: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(_isLoading ? 'Szukam źródeł...' : (isContinuing ? 'Kontynuuj oglądanie' : 'Odtwórz'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+          style: FilledButton.styleFrom(minimumSize: const Size(200, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        );
+      },
+    );
+  }
+
+  Widget _buildPosterImage() {
+    final url = widget.item.posterUrl;
+    if (url != null && url.isNotEmpty && url.startsWith('http')) {
+      return Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder());
+    }
+    return _buildPlaceholder();
+  }
+
   Widget _buildPlaceholder() {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: const Icon(Icons.movie_filter_rounded, size: 64),
+    return Container(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.movie_filter_rounded, size: 64));
+  }
+
+  Widget _buildBackButton() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: CircleAvatar(backgroundColor: Colors.black.withOpacity(0.3), child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => context.pop())),
+    );
+  }
+
+  Widget _buildFavoriteButton({bool isLarge = false}) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final favorites = ref.watch(favoritesProvider);
+        final isFav = favorites.any((e) => e.id == widget.item.id);
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: CircleAvatar(
+            radius: isLarge ? 24 : 20,
+            backgroundColor: isLarge ? Theme.of(context).colorScheme.surfaceContainerHigh : Colors.black.withOpacity(0.3),
+            child: IconButton(
+              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.red : (isLarge ? null : Colors.white), size: isLarge ? 28 : 24),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildSeasonSelector() {
     final tvDetails = ref.watch(tvDetailsProvider(widget.item.id));
     final theme = Theme.of(context);
-
     return tvDetails.when(
       data: (data) {
         final seasons = data['seasons'] as List;
         final regularSeasons = seasons.where((s) => s['season_number'] > 0).toList();
-
         if (regularSeasons.isEmpty) return const SizedBox.shrink();
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Odcinki',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
+                Text('Odcinki', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
                   child: DropdownButton<int>(
                     value: _selectedSeason,
                     underline: const SizedBox(),
                     items: regularSeasons.map<DropdownMenuItem<int>>((season) {
                       return DropdownMenuItem(
                         value: season['season_number'],
-                        child: Text(
-                          season['name'] ?? 'Sezon ${season['season_number']}',
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
+                        child: Text(season['name'] ?? 'Sezon ${season['season_number']}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
                       );
                     }).toList(),
                     onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedSeason = value;
-                        });
-                      }
+                      if (value != null) setState(() => _selectedSeason = value);
                     },
                   ),
                 ),
@@ -517,14 +426,13 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Text('Błąd pobierania sezonów: $e'),
+      error: (e, _) => Text('Błąd: $e'),
     );
   }
 
   Widget _buildEpisodeList() {
     final episodes = ref.watch(seasonEpisodesProvider((id: widget.item.id, season: _selectedSeason)));
     final theme = Theme.of(context);
-
     return episodes.when(
       data: (episodeList) {
         return SliverPadding(
@@ -540,9 +448,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     borderRadius: BorderRadius.circular(16),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
-                      onTap: _isLoading ? null : () {
-                        _playMedia(season: _selectedSeason, episode: episode.episodeNumber);
-                      },
+                      onTap: _isLoading ? null : () => _playMedia(season: _selectedSeason, episode: episode.episodeNumber),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
@@ -554,50 +460,20 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: episode.stillPath != null
-                                      ? Image.network(
-                                          '${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}',
-                                          width: 120,
-                                          height: 70,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_,__,___) => _buildEpisodePlaceholder(),
-                                        )
+                                      ? Image.network('${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}', width: 160, height: 90, fit: BoxFit.cover, errorBuilder: (_,__,___) => _buildEpisodePlaceholder())
                                       : _buildEpisodePlaceholder(),
                                 ),
-                                if (_isLoading)
-                                  const CircularProgressIndicator(strokeWidth: 2)
-                                else
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.4),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.play_arrow, color: Colors.white, size: 20),
-                                  ),
+                                if (_isLoading) const CircularProgressIndicator(strokeWidth: 2) else Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), shape: BoxShape.circle), child: const Icon(Icons.play_arrow, color: Colors.white, size: 24)),
                               ],
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 20),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${episode.episodeNumber}. ${episode.name}',
-                                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    episode.overview != null && episode.overview!.isNotEmpty 
-                                      ? episode.overview! 
-                                      : 'Brak opisu odcinka',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.outline,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  Text('${episode.episodeNumber}. ${episode.name}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  const SizedBox(height: 6),
+                                  Text(episode.overview != null && episode.overview!.isNotEmpty ? episode.overview! : 'Brak opisu odcinka', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline), maxLines: 3, overflow: TextOverflow.ellipsis),
                                 ],
                               ),
                             ),
@@ -619,11 +495,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   Widget _buildEpisodePlaceholder() {
-    return Container(
-      width: 120,
-      height: 70,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: const Icon(Icons.tv_rounded),
-    );
+    return Container(width: 160, height: 90, color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.tv_rounded));
   }
 }

@@ -9,20 +9,23 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isWide = MediaQuery.of(context).size.width > 900;
+
     return Scaffold(
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: false,
-            centerTitle: true,
-            title: Image.asset(
-              'assets/images/logoapp.webp',
-              height: 36,
-              errorBuilder: (context, error, stackTrace) => const Text('Zetta'),
+          if (!isWide)
+            SliverAppBar(
+              floating: true,
+              pinned: false,
+              centerTitle: true,
+              title: Image.asset(
+                'assets/images/logoapp.webp',
+                height: 36,
+                errorBuilder: (context, error, stackTrace) => const Text('Zetta'),
+              ),
             ),
-          ),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -18,25 +18,24 @@ class ScaffoldWithNavBar extends StatelessWidget {
           return Scaffold(
             extendBody: true,
             body: navigationShell,
-            bottomNavigationBar: Container(
-              height: 60,
-              margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            bottomNavigationBar: RepaintBoundary(
+              child: Container(
+                height: 60,
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
                   child: Container(
-                    color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -57,42 +56,63 @@ class ScaffoldWithNavBar extends StatelessWidget {
             body: Row(
               children: [
                 FocusTraversalGroup(
-                  child: NavigationRail(
-                    selectedIndex: navigationShell.currentIndex,
-                    onDestinationSelected: (int index) => _onTap(context, index),
-                    labelType: NavigationRailLabelType.all,
-                    groupAlignment: -0.9,
-                    unselectedIconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-                    selectedIconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
-                    unselectedLabelTextStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-                    selectedLabelTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
-                    destinations: const <NavigationRailDestination>[
-                      NavigationRailDestination(
-                        icon: Icon(Icons.home_outlined),
-                        selectedIcon: Icon(Icons.home),
-                        label: Text('Start'),
+                  child: RepaintBoundary(
+                    child: NavigationRail(
+                      selectedIndex: navigationShell.currentIndex,
+                      onDestinationSelected: (int index) => _onTap(context, index),
+                      labelType: NavigationRailLabelType.none,
+                      groupAlignment: 0.0,
+                      leading: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Image.asset(
+                            'assets/images/logoapp.webp',
+                            height: 40,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.movie_filter_rounded,
+                              size: 40,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                       ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.search_outlined),
-                        selectedIcon: Icon(Icons.search),
-                        label: Text('Szukaj'),
+                      unselectedIconTheme: IconThemeData(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        size: 32,
                       ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.explore_outlined),
-                        selectedIcon: Icon(Icons.explore),
-                        label: Text('Odkrywaj'),
+                      selectedIconTheme: IconThemeData(
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 36,
                       ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.video_library_outlined),
-                        selectedIcon: Icon(Icons.video_library),
-                        label: Text('Biblioteka'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.settings_outlined),
-                        selectedIcon: Icon(Icons.settings),
-                        label: Text('Ustawienia'),
-                      ),
-                    ],
+                      destinations: const <NavigationRailDestination>[
+                        NavigationRailDestination(
+                          icon: Icon(Icons.home_outlined),
+                          selectedIcon: Icon(Icons.home),
+                          label: Text('Start'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.search_outlined),
+                          selectedIcon: Icon(Icons.search),
+                          label: Text('Szukaj'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.explore_outlined),
+                          selectedIcon: Icon(Icons.explore),
+                          label: Text('Odkrywaj'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.video_library_outlined),
+                          selectedIcon: Icon(Icons.video_library),
+                          label: Text('Biblioteka'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.settings_outlined),
+                          selectedIcon: Icon(Icons.settings),
+                          label: Text('Ustawienia'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const VerticalDivider(thickness: 1, width: 1),

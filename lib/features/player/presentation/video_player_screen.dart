@@ -31,7 +31,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   bool _showWebViewDebug = false;
   bool _isExiting = false;
   Timer? _hideControlsTimer;
-  }
   Timer? _progressSaveTimer;
   Timer? _timeoutTimer;
   
@@ -309,22 +308,10 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           children: [
             if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_hasError && !_isExiting)
               Positioned.fill(
-                child: Stack(
-                  children: [
-                    VideoSniffer(
-                      initialUrl: widget.args.initialUrl!,
-                      onStreamCaught: _startPlayback,
-                      args: widget.args,
-                    ),
-                    Positioned(
-                      top: 40, left: 20,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.8), borderRadius: BorderRadius.circular(8)),
-                        child: const Text("DEBUG MODE: PODGLĄD SNIFFERA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
-                      ),
-                    ),
-                  ],
+                child: VideoSniffer(
+                  initialUrl: widget.args.initialUrl!,
+                  onStreamCaught: _startPlayback,
+                  args: widget.args,
                 ),
               ),
 
@@ -426,20 +413,18 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Widget _buildGestureOverlay() {
     final isForward = _gestureType == 'forward';
     return Center(
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            width: 120, height: 120,
-            color: Colors.white.withOpacity(0.1),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(isForward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded, color: Colors.white, size: 40),
-                Text(isForward ? "+10s" : "-10s", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
+      child: Container(
+        width: 120, height: 120,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withOpacity(0.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isForward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded, color: Colors.white, size: 40),
+            Text(isForward ? "+10s" : "-10s", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
         ),
       ),
     );
@@ -448,82 +433,84 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Widget _buildMD3Controls(BuildContext context, EdgeInsets padding) {
     return AnimatedOpacity(
       opacity: _showControls ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 250),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: Container(
-              height: 80 + padding.top,
-              padding: EdgeInsets.fromLTRB(16 + padding.left, padding.top, 16 + padding.right, 0),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                ),
-              ),
-              child: Row(
-                children: [
-                  _buildPillButton(Icons.arrow_back_ios_new_rounded, _handleBack),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      widget.args.item.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+      duration: const Duration(milliseconds: 200),
+      child: RepaintBoundary(
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0, left: 0, right: 0,
+              child: Container(
+                height: 80 + padding.top,
+                padding: EdgeInsets.fromLTRB(16 + padding.left, padding.top, 16 + padding.right, 0),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                   ),
-                  _buildPillButton(Icons.aspect_ratio_rounded, _toggleFill),
-                ],
-              ),
-            ),
-          ),
-
-          Positioned(
-            bottom: 0, left: 0, right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(20 + padding.left, 20, 20 + padding.right, 12 + padding.bottom),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildModernSlider(),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildPillButton(Icons.replay_10_rounded, () => player.seek(player.state.position - const Duration(seconds: 10)), small: true),
-                      const SizedBox(width: 40),
-                      StreamBuilder<bool>(
-                        stream: player.stream.playing,
-                        initialData: player.state.playing,
-                        builder: (context, snapshot) {
-                          final isPlaying = snapshot.data ?? false;
-                          return IconButton(
-                            icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 54),
-                            onPressed: () {
-                              HapticFeedback.mediumImpact();
-                              player.playOrPause();
-                            },
-                          );
-                        },
+                child: Row(
+                  children: [
+                    _buildPillButton(Icons.arrow_back_ios_new_rounded, _handleBack),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        widget.args.item.title,
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(width: 40),
-                      _buildPillButton(Icons.forward_10_rounded, () => player.seek(player.state.position + const Duration(seconds: 10)), small: true),
-                    ],
-                  ),
-                ],
+                    ),
+                    _buildPillButton(Icons.aspect_ratio_rounded, _toggleFill),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(20 + padding.left, 20, 20 + padding.right, 12 + padding.bottom),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildModernSlider(),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildPillButton(Icons.replay_10_rounded, () => player.seek(player.state.position - const Duration(seconds: 10)), small: true),
+                        const SizedBox(width: 40),
+                        StreamBuilder<bool>(
+                          stream: player.stream.playing,
+                          initialData: player.state.playing,
+                          builder: (context, snapshot) {
+                            final isPlaying = snapshot.data ?? false;
+                            return IconButton(
+                              icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 54),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                player.playOrPause();
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 40),
+                        _buildPillButton(Icons.forward_10_rounded, () => player.seek(player.state.position + const Duration(seconds: 10)), small: true),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -580,7 +567,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Material(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withOpacity(0.15),
         child: InkWell(
           onTap: () {
             HapticFeedback.lightImpact();
