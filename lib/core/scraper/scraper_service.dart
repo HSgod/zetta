@@ -49,9 +49,7 @@ class ScraperService {
   Future<List<VideoSource>> findStream(String title, MediaType type, {int? season, int? episode}) async {
     String cleanTitle = title.split(':').first.split('-').first.trim();
     
-    final query = season != null 
-        ? '$cleanTitle S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}'
-        : cleanTitle;
+    final query = cleanTitle;
 
     List<VideoSource> allSources = [];
     
@@ -70,7 +68,7 @@ class ScraperService {
              return <VideoSource>[];
           }
 
-          return await scraper.getSources(bestMatch);
+          return await scraper.getSources(bestMatch, season: season, episode: episode);
         }
       } catch (e) {
         // Ignorujemy błędy poszczególnych scraperów w wersji stabilnej

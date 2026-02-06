@@ -134,19 +134,22 @@ final continueWatchingProvider = NotifierProvider<ContinueWatchingNotifier, List
 // Klasa do zapisu danych źródła wideo
 class SavedSource {
   final String url;
+  final String? pageUrl;
   final Map<String, String>? headers;
   final String? automationScript;
 
-  SavedSource({required this.url, this.headers, this.automationScript});
+  SavedSource({required this.url, this.pageUrl, this.headers, this.automationScript});
 
   Map<String, dynamic> toMap() => {
     'url': url,
+    'pageUrl': pageUrl,
     'headers': headers,
     'automationScript': automationScript,
   };
 
   factory SavedSource.fromMap(Map<String, dynamic> map) => SavedSource(
     url: map['url'],
+    pageUrl: map['pageUrl'],
     headers: map['headers'] != null ? Map<String, String>.from(map['headers']) : null,
     automationScript: map['automationScript'],
   );

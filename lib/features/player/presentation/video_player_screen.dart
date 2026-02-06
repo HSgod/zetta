@@ -26,9 +26,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   late final VideoController controller;
   
   bool _isLoading = true;
+  bool _hasError = false;
   bool _showControls = true;
+  bool _showWebViewDebug = false; // Flaga wy\u0142\u0105czona - przywraca spinner
   Timer? _hideControlsTimer;
   Timer? _progressSaveTimer;
+  Timer? _timeoutTimer;
   
   String? _gestureType; 
   Duration? _gestureSeekTarget;
@@ -40,6 +43,20 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   void initState() {
     super.initState();
     _initPlayer();
+    _startTimeoutTimer();
+  }
+
+  void _startTimeoutTimer() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
+        player.pause();
+      }
+    });
   }
 
   Future<void> _initPlayer() async {
@@ -54,59 +71,92 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
     _subscriptions.add(player.stream.playing.listen((playing) {
       if (playing && _isLoading) {
-        Future.delayed(const Duration(milliseconds: 1200), () {
-          if (mounted && _isLoading) {
-            setState(() => _isLoading = false);
-            _startHideTimer();
-            _startProgressTimer();
-          }
-        });
+        _onLoadSuccess();
       }
     }));
 
     _subscriptions.add(player.stream.width.listen((width) {
       if ((width ?? 0) > 0 && _isLoading) {
-        setState(() => _isLoading = false);
-        _startHideTimer();
-        _startProgressTimer();
+        _onLoadSuccess();
       }
     }));
 
-    // AUTO-START: Jeśli mamy już adres (z Biblioteki), odpalamy od razu
     if (widget.args.videoUrl != null) {
       _startPlayback(widget.args.videoUrl!);
     }
   }
 
+  void _onLoadSuccess() {
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (mounted && _isLoading) {
+        _timeoutTimer?.cancel();
+        setState(() {
+          _isLoading = false;
+          _hasError = false;
+          _showWebViewDebug = false; // Ukryj po sukcesie
+        });
+        _startHideTimer();
+        _startProgressTimer();
+      }
+    });
+  }
+
   String? _lastStreamUrl;
   void _startPlayback(String streamUrl) {
     if (!mounted) return;
+    // Je\u015bli to ten sam URL co przed chwil\u0105, nic nie r\u00f3b
     if (streamUrl == _lastStreamUrl) return;
     _lastStreamUrl = streamUrl;
     
-    // Dodajemy do Historii i Kontynuuj oglądanie
+    _startTimeoutTimer();
+
     Future.microtask(() {
       ref.read(historyProvider.notifier).addToHistory(widget.args.item);
       ref.read(continueWatchingProvider.notifier).addToContinue(widget.args.item);
       
-      // Zapisujemy źródło dla "Kontynuuj"
       ref.read(sourceHistoryProvider.notifier).saveSource(
         widget.args.item.id,
         SavedSource(
           url: streamUrl,
+          pageUrl: widget.args.initialUrl,
           headers: widget.args.headers,
           automationScript: widget.args.automationScript,
         ),
       );
     });
 
-    // Używamy nagłówków ze scrapera lub domyślnych dla Ekino
-    final headers = widget.args.headers ?? {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      'Referer': 'https://play.ekino.link/',
+    final desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    
+    // KLUCZOWE DLA FILEMOON: Referer musi by\u0107 PE\u0141NYM adresem iframe (initialUrl)
+    final Map<String, String> headers = {
+      'User-Agent': desktopUA,
+      'Referer': widget.args.initialUrl ?? 'https://obejrzyj.to/',
     };
 
-    player.open(Media(streamUrl, httpHeaders: headers)).then((_) => _loadProgress());
+    if (widget.args.initialUrl != null) {
+      try {
+        final uri = Uri.parse(widget.args.initialUrl!);
+        headers['Origin'] = '${uri.scheme}://${uri.host}';
+      } catch (_) {}
+    }
+
+    // Je\u015bli scraper przekaza\u0142 w\u0142asne nag\u0142\u00f3wki, po\u0142\u0105cz je (priorytet dla tych przekazanych)
+    if (widget.args.headers != null) {
+      headers.addAll(widget.args.headers!);
+    }
+
+    // ZAWSZE stopujemy player przed otwarciem, aby wymusi\u0107 reset bufora i obrazu
+    player.stop().then((_) {
+      player.open(Media(streamUrl, httpHeaders: headers)).then((_) {
+        _loadProgress();
+        // KLUCZOWE DLA FILEMOON: Lekki "seek" po starcie wymusza od\u015bwie\u017cenie klatki wideo
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && player.state.playing) {
+            player.seek(player.state.position + const Duration(milliseconds: 100));
+          }
+        });
+      });
+    });
   }
 
   void _startProgressTimer() {
@@ -117,7 +167,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _saveProgress() async {
-    if (_isLoading) return;
+    if (_isLoading || _hasError) return;
     final prefs = await SharedPreferences.getInstance();
     final key = "progress_${widget.args.item.id}";
     final position = player.state.position.inSeconds;
@@ -125,7 +175,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
     await prefs.setInt(key, position);
 
-    // Jeśli obejrzano ponad 90% filmu, usuwamy go z sekcji "Kontynuuj"
     if (duration > 0 && position > duration * 0.9) {
       ref.read(continueWatchingProvider.notifier).removeFromContinue(widget.args.item.id);
     }
@@ -139,7 +188,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     if (savedSeconds != null && savedSeconds > 10) {
       StreamSubscription? sub;
       sub = player.stream.buffer.listen((buffer) {
-        // Skaczemy dopiero gdy bufor ma przynajmniej 1 sekundę lub jest gotowy
         if (buffer.inSeconds > 0) {
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) {
@@ -167,6 +215,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     _saveProgress();
     _hideControlsTimer?.cancel();
     _progressSaveTimer?.cancel();
+    _timeoutTimer?.cancel();
     for (var s in _subscriptions) {
       s.cancel();
     }
@@ -177,13 +226,14 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   void _onDoubleTapDown(TapDownDetails details, double screenWidth) {
+    if (_hasError) return;
     final gesturesEnabled = ref.read(playerGesturesProvider);
     if (!gesturesEnabled) return;
 
     final isRightSide = details.globalPosition.dx > screenWidth / 2;
     HapticFeedback.lightImpact();
     setState(() {
-      _gestureType = isRightSide ? 'forward' : 'rewind';
+      _gestureType = 'forward';
       _gestureSeekTarget = isRightSide 
           ? player.state.position + const Duration(seconds: 10)
           : player.state.position - const Duration(seconds: 10);
@@ -211,22 +261,29 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // Hidden Sniffer (Only if we don't have a direct videoUrl)
-          // Jeśli nie mamy gotowego adresu wideo, uruchamiamy sniffera (WebView)
-          if (widget.args.videoUrl == null && widget.args.initialUrl != null)
+          if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_hasError)
             Positioned.fill(
-              child: Offstage(
-                offstage: true, 
-                child: VideoSniffer(
-                  initialUrl: widget.args.initialUrl!,
-                  onStreamCaught: _startPlayback,
-                  args: widget.args,
-                ),
+              child: Stack(
+                children: [
+                  VideoSniffer(
+                    initialUrl: widget.args.initialUrl!,
+                    onStreamCaught: _startPlayback,
+                    args: widget.args,
+                  ),
+                  // Pasek informacyjny o debugowaniu
+                  Positioned(
+                    top: 40, left: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.red.withOpacity(0.8), borderRadius: BorderRadius.circular(8)),
+                      child: const Text("DEBUG MODE: PODGL\u0104D SNIFFERA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-          // Player (Centered)
-          if (!_isLoading)
+          if (!_isLoading && !_hasError)
             Positioned.fill(
               child: GestureDetector(
                 onTap: () {
@@ -258,8 +315,45 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               ),
             ),
 
-          // Elegant Spinner Overlay
-          if (_isLoading)
+          if (_hasError)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "PROBLEM ZE \u0179R\u00d3D\u0141EM",
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Nie uda\u0142o si\u0119 za\u0142adowa\u0107 wideo w wyznaczonym czasie.\nSpr\u00f3buj u\u017cy\u0107 innego \u017ar\u00f3d\u0142a.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                      const SizedBox(height: 32),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back),
+                        label: const Text("WR\u00d3\u0106 DO WYBORU"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white30),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          if (_isLoading && !_showWebViewDebug)
             Positioned.fill(
               child: Container(
                 color: Colors.black,
@@ -273,7 +367,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                       ),
                       const SizedBox(height: 24),
                       const Text(
-                        "ŁĄCZENIE Z SERWEREM",
+                        "\u0141\u0104CZENIE Z SERWEREM",
                         style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
                       ),
                     ],
@@ -314,7 +408,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       duration: const Duration(milliseconds: 250),
       child: Stack(
         children: [
-          // Top Bar
           Positioned(
             top: 0, left: 0, right: 0,
             child: Container(
@@ -344,7 +437,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
             ),
           ),
 
-          // Bottom Bar (Glassmorphism MD3E)
           Positioned(
             bottom: 0, left: 0, right: 0,
             child: Container(
@@ -406,8 +498,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           children: [
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                trackHeight: 6, // Grubszy pasek
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7), // Widoczne kółeczko
+                trackHeight: 6,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
                 activeTrackColor: primaryColor,
                 thumbColor: primaryColor,
                 inactiveTrackColor: Colors.white.withOpacity(0.2),
@@ -486,70 +578,114 @@ class VideoSniffer extends StatefulWidget {
 class _VideoSnifferState extends State<VideoSniffer> {
   @override
   Widget build(BuildContext context) {
-    const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
+    final desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
     
+    final initialOrigin = widget.args.initialUrl != null ? Uri.parse(widget.args.initialUrl!).origin : 'https://ekino-tv.pl';
     final headers = widget.args.headers ?? {
       'User-Agent': desktopUA,
-      'Referer': 'https://ekino-tv.pl/',
+      'Referer': widget.args.initialUrl ?? 'https://ekino-tv.pl/',
+      'Origin': initialOrigin,
     };
 
     final defaultScript = r"""
             (function() {
-              var clickInProgress = false;
+              var attempts = 0;
+              var maxAttempts = 100;
+              var ultraClicksDone = false;
+              
               function attemptAutoClick() {
-                if (clickInProgress) return;
-                var currentUrl = window.location.href;
-                if (document.querySelector('#cf-challenge') || document.querySelector('.cf-turnstile')) return;
+                if (attempts++ > maxAttempts) return;
                 
-                var timer = document.querySelector('#timer, .timer, #countdown, [class*="countdown"]');
-                if (timer) {
-                  var timeTxt = timer.textContent.trim();
-                  if (timeTxt !== '0' && timeTxt !== '00:00' && (timeTxt.includes(':') || !isNaN(parseInt(timeTxt)))) return;
+                // 1. Sprawd\u017a czy jest weryfikacja
+                const bodyText = document.body.innerText;
+                if (bodyText.includes('Verifying you are human') || 
+                    bodyText.includes('Checking your browser') || 
+                    document.querySelector('#cf-challenge')) return;
+
+                var currentUrl = window.location.href;
+                var isUltra = currentUrl.indexOf('ultrastream') !== -1 || currentUrl.indexOf('streamly') !== -1;
+
+                // 2. USUWANIE NAK\u0141ADEK (Reklamy/Overlays)
+                if (isUltra || attempts % 5 === 0) {
+                  document.querySelectorAll('div').forEach(el => {
+                    const z = parseInt(window.getComputedStyle(el).zIndex);
+                    if (z > 100 && !el.querySelector('video')) {
+                      el.remove();
+                    }
+                  });
                 }
 
+                // Wymuszenie startu
+                document.querySelectorAll('video').forEach(v => { 
+                  v.muted = true; 
+                  if (v.paused) v.play().catch(() => {});
+                });
+                
+                // EKINO-TV
                 if (currentUrl.indexOf('ekino-tv.pl') !== -1) {
-                  var targetBtn = document.querySelector('a.buttonprch') || 
-                                  document.querySelector('.warning_ch a') ||
-                                  document.querySelector('a[href*="play.ekino.link"]');
-
-                  if (targetBtn && !targetBtn.dataset.automationClicked) {
-                    var btnText = targetBtn.textContent.toLowerCase();
-                    if (btnText === '' || btnText.indexOf('przejdź') !== -1 || btnText.indexOf('odtwarzania') !== -1 || targetBtn.classList.contains('buttonprch')) {
-                      clickInProgress = true;
-                      targetBtn.dataset.automationClicked = "true";
-                      targetBtn.setAttribute('target', '_self');
-                      if (targetBtn.href && targetBtn.href.indexOf('http') === 0) window.location.href = targetBtn.href;
-                      else targetBtn.click();
-                      setTimeout(function() { clickInProgress = false; }, 3000);
-                    }
+                  var startImg = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
+                  if (startImg && !startImg.dataset.automationClicked) {
+                    startImg.dataset.automationClicked = "true";
+                    startImg.click();
+                    if (startImg.parentElement && startImg.parentElement.tagName === 'A') startImg.parentElement.click();
+                    return;
                   }
 
-                  var imgEntry = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
-                  if (imgEntry && !imgEntry.dataset.automationClicked) {
-                    var parentLink = imgEntry.closest('a');
-                    if (parentLink) {
-                      clickInProgress = true;
-                      imgEntry.dataset.automationClicked = "true";
-                      parentLink.setAttribute('target', '_self');
-                      parentLink.click();
-                      setTimeout(function() { clickInProgress = false; }, 3000);
+                  var playerLinks = document.querySelectorAll('.players a, a.buttonprch, .warning_ch a, a[href*="play.ekino.link"]');
+                  for (var i = 0; i < playerLinks.length; i++) {
+                    if (!playerLinks[i].dataset.automationClicked) {
+                      playerLinks[i].dataset.automationClicked = "true";
+                      playerLinks[i].setAttribute('target', '_self');
+                      playerLinks[i].click();
+                      window.location.href = playerLinks[i].href;
+                      return;
                     }
                   }
                 } 
                 
-                if (currentUrl.indexOf('play.') !== -1 || currentUrl.indexOf('f16px.com') !== -1) {
-                  var playSelectors = ['.vjs-big-play-button', '.play-button', 'button[aria-label="Play"]', '.jw-display-icon-container', '#play-btn', '.play_icon'];
-                  for (var i = 0; i < playSelectors.length; i++) {
-                    var btn = document.querySelector(playSelectors[i]);
-                    if (btn && btn.offsetParent !== null && !btn.dataset.automationClicked) {
-                      clickInProgress = true;
+                // Uniwersalne Play
+                var playSelectors = [
+                  '.player-button',
+                  '.vjs-big-play-button', 
+                  '.play-button', 
+                  'button[aria-label="Play"]', 
+                  '.jw-display-icon-container', 
+                  '#play-btn', 
+                  '.play_icon',
+                  '#play',
+                  '.click-to-play',
+                  '.vjs-poster',
+                  '#player_control_play'
+                ];
+                
+                for (var i = 0; i < playSelectors.length; i++) {
+                  var btn = document.querySelector(playSelectors[i]);
+                  if (btn && btn.offsetParent !== null) {
+                    if (isUltra && !ultraClicksDone) {
+                      console.log("UltraStream: Wykonuj\u0119 agresywne klikni\u0119cia...");
+                      for(var j=0; j<3; j++) {
+                        btn.click();
+                        btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+                        btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
+                        btn.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+                      }
+                      ultraClicksDone = true;
+                      return;
+                    } else if (!isUltra && !btn.dataset.automationClicked) {
                       btn.dataset.automationClicked = "true";
                       btn.click();
-                      setTimeout(function() { clickInProgress = false; }, 3000);
+                      return;
                     }
                   }
                 }
+                
+                // Klik w \u015brodek co 15s jako fallback
+                if (attempts % 15 === 0) {
+                  const el = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
+                  if (el) el.click();
+                }
               }
+              window.open = function() { return { focus: function() {} }; };
               setInterval(attemptAutoClick, 1000);
             })();
     """;
@@ -574,20 +710,40 @@ class _VideoSnifferState extends State<VideoSniffer> {
       ]),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
-        useShouldInterceptRequest: true,
+        useShouldInterceptRequest: false, // Wy\u0142\u0105czone, aby unikn\u0105\u0107 b\u0142\u0119d\u00f3w SSL (-107)
+        useOnLoadResource: true, 
         preferredContentMode: UserPreferredContentMode.DESKTOP,
         mediaPlaybackRequiresUserGesture: false,
         domStorageEnabled: true,
         databaseEnabled: true,
-        useWideViewPort: true,
         userAgent: desktopUA,
+        mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+        allowFileAccessFromFileURLs: true,
+        allowUniversalAccessFromFileURLs: true,
       ),
-      shouldInterceptRequest: (controller, request) async {
-        final reqUrl = request.url.toString();
-        if (reqUrl.contains('.m3u8') || (reqUrl.contains('.mp4') && !reqUrl.contains('ads'))) {
+      onReceivedServerTrustAuthRequest: (controller, challenge) async {
+        return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
+      },
+      onLoadResource: (controller, resource) {
+        final reqUrl = resource.url.toString();
+        // Pomijaj analityk\u0119 UltraStream, kt\u00f3ra mo\u017ce wywala\u0107 Request Invalid
+        if (reqUrl.contains('tracker') || reqUrl.contains('analytics') || reqUrl.contains('collect')) return;
+
+        if (reqUrl.contains('.m3u8') || reqUrl.contains('.mp4') || reqUrl.contains('/hls/')) {
+          if (reqUrl.contains('google.com') || reqUrl.contains('facebook.com') || reqUrl.contains('doubleclick')) return;
+          
+          print('VideoSniffer: Przechwycono: $reqUrl');
           widget.onStreamCaught(reqUrl);
+          
+          Future.delayed(const Duration(seconds: 30), () {
+            if (mounted) {
+              controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
+            }
+          });
         }
-        return null;
+      },
+      onConsoleMessage: (controller, consoleMessage) {
+        print("WebView Console: ${consoleMessage.message}");
       },
     );
   }

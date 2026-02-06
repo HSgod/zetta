@@ -51,7 +51,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
 
       if (sources.isNotEmpty && mounted) {
-        _showSourcePicker(sources);
+        // Pobieramy zapisane \u017ar\u00f3d\u0142o dla tego elementu
+        final saved = ref.read(sourceHistoryProvider.notifier).getSource(widget.item.id);
+        _showSourcePicker(sources, savedSource: saved);
       } else {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
@@ -73,13 +75,24 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   void _navigateToPlayer(VideoSource source) {
     context.push('/player', extra: PlayerArgs(
       item: widget.item, 
-      initialUrl: source.url,
+      initialUrl: source.isWebView ? source.url : null,
+      videoUrl: source.isWebView ? null : source.url,
       headers: source.headers,
       automationScript: source.automationScript,
     ));
   }
 
-  void _showSourcePicker(List<VideoSource> sources) {
+  void _showSourcePicker(List<VideoSource> sources, {SavedSource? savedSource}) {
+    // Sortowanie: je\u015bli mamy zapisane \u017ar\u00f3d\u0142o (matchujemy po pageUrl), przesuwamy je na g\u00f3r\u0119
+    final List<VideoSource> sortedSources = List.from(sources);
+    if (savedSource != null && savedSource.pageUrl != null) {
+      final savedIdx = sortedSources.indexWhere((s) => s.url == savedSource.pageUrl);
+      if (savedIdx != -1) {
+        final saved = sortedSources.removeAt(savedIdx);
+        sortedSources.insert(0, saved);
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -112,46 +125,65 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 Flexible(
                   child: ListView.separated(
                     shrinkWrap: true,
-                    itemCount: sources.length,
+                    itemCount: sortedSources.length,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
                     itemBuilder: (context, index) {
-                      final source = sources[index];
+                      final source = sortedSources[index];
+                      final isSuggested = savedSource != null && source.url == savedSource.pageUrl;
+
                       return ListTile(
+                        selected: isSuggested,
+                        selectedTileColor: Colors.green.withOpacity(0.1),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          backgroundColor: isSuggested 
+                              ? Colors.green 
+                              : Theme.of(context).colorScheme.primaryContainer,
                           child: Icon(
-                            source.sourceName.toLowerCase().contains('ekino') 
+                            isSuggested ? Icons.history : (source.sourceName.toLowerCase().contains('ekino') 
                               ? Icons.movie_filter 
-                              : Icons.language,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              : Icons.language),
+                            color: isSuggested ? Colors.white : Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
                         ),
                         title: Text(
                           source.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontWeight: isSuggested ? FontWeight.bold : FontWeight.w600,
+                            color: isSuggested ? Colors.green : null,
+                          ),
                         ),
-                        subtitle: Row(
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              source.sourceName,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
+                            if (isSuggested)
+                              const Text(
+                                'ŹRÓDŁO DO KONTYNUOWANIA OGLĄDANIA',
+                                style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
                               ),
+                            Row(
+                              children: [
+                                Text(
+                                  source.sourceName,
+                                  style: TextStyle(
+                                    color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('•'),
+                                const SizedBox(width: 8),
+                                Text('Jakość: ${source.quality}'),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            const Text('•'),
-                            const SizedBox(width: 8),
-                            Text('Jakość: ${source.quality}'),
                           ],
                         ),
                         trailing: Icon(
                           Icons.play_circle_fill,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary,
                           size: 32,
                         ),
                         onTap: () {
@@ -330,20 +362,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                         
                         return FilledButton.icon(
                           onPressed: _isLoading ? null : () async {
-                            if (isContinuing) {
-                              // Próbujemy odpalić bezpośrednio zapisane źródło
-                              final saved = ref.read(sourceHistoryProvider.notifier).getSource(widget.item.id);
-                              if (saved != null) {
-                                context.push('/player', extra: PlayerArgs(
-                                  item: widget.item, 
-                                  videoUrl: saved.url,
-                                  headers: saved.headers,
-                                  automationScript: saved.automationScript,
-                                ));
-                                return;
-                              }
-                            }
-                            // Jeśli nie ma zapisanego źródła lub to nowy seans, szukamy normalnie
                             _playMedia();
                           },
                           icon: _isLoading 

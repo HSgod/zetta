@@ -8,7 +8,7 @@ abstract class BaseScraper {
   Future<List<SearchResult>> search(String title, MediaType type);
 
   // Metoda wyciągająca linki do wideo z konkretnej podstrony
-  Future<List<VideoSource>> getSources(SearchResult result);
+  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode});
 }
 
 class SearchResult {
