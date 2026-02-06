@@ -4,45 +4,77 @@ import '../domain/media_item.dart';
 import 'providers/search_provider.dart';
 import 'widgets/media_card.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  DateTime? _lastPressed;
+
+  @override
+  Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width > 900;
 
-    return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          if (!isWide)
-            SliverAppBar(
-              floating: true,
-              pinned: false,
-              centerTitle: true,
-              title: Image.asset(
-                'assets/images/logoapp.webp',
-                height: 36,
-                errorBuilder: (context, error, stackTrace) => const Text('Zetta'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        final now = DateTime.now();
+        final maxDuration = const Duration(seconds: 2);
+        
+        if (_lastPressed == null || now.difference(_lastPressed!) > maxDuration) {
+          _lastPressed = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Naciśnij ponownie, aby wyjść'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              width: 250,
+            ),
+          );
+          return;
+        }
+        
+        // Jeśli kliknięto drugi raz w ciągu 2s - zamknij aplikację
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            if (!isWide)
+              SliverAppBar(
+                floating: true,
+                pinned: false,
+                centerTitle: true,
+                title: Image.asset(
+                  'assets/images/logoapp.webp',
+                  height: 36,
+                  errorBuilder: (context, error, stackTrace) => const Text('Zetta'),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _MediaSection(
+                    title: 'Popularne filmy',
+                    provider: popularMoviesProvider,
+                  ),
+                  _MediaSection(
+                    title: 'Popularne seriale',
+                    provider: popularTVProvider,
+                  ),
+                  const SizedBox(height: 100),
+                ],
               ),
             ),
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MediaSection(
-                  title: 'Popularne filmy',
-                  provider: popularMoviesProvider,
-                ),
-                _MediaSection(
-                  title: 'Popularne seriale',
-                  provider: popularTVProvider,
-                ),
-                const SizedBox(height: 100),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

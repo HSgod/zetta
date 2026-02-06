@@ -87,32 +87,62 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       }
     }
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) {
-        return SafeArea(
+    final isWide = MediaQuery.of(context).size.width > 900;
+
+    if (isWide) {
+      showDialog(
+        context: context,
+        builder: (context) => Center(
+          child: Container(
+            width: 500,
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: Material(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(28),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                    child: Text(
+                      'Wybierz źródło wideo',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: sortedSources.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
+                      itemBuilder: (context, index) => _buildSourceTile(context, sortedSources[index], savedSource, isTV: true),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        builder: (context) => SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                  width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
                 ),
-                Text(
-                  'Wybierz źródło wideo',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
+                Text('Wybierz źródło wideo', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 Flexible(
                   child: ListView.separated(
@@ -120,56 +150,74 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     itemCount: sortedSources.length,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
-                    itemBuilder: (context, index) {
-                      final source = sortedSources[index];
-                      final isSuggested = savedSource != null && source.url == savedSource.pageUrl;
-
-                      return ListTile(
-                        selected: isSuggested,
-                        selectedTileColor: Colors.green.withOpacity(0.1),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        leading: CircleAvatar(
-                          backgroundColor: isSuggested ? Colors.green : Theme.of(context).colorScheme.primaryContainer,
-                          child: Icon(
-                            isSuggested ? Icons.history : (source.sourceName.toLowerCase().contains('ekino') ? Icons.movie_filter : Icons.language),
-                            color: isSuggested ? Colors.white : Theme.of(context).colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                        title: Text(
-                          source.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontWeight: isSuggested ? FontWeight.bold : FontWeight.w600, color: isSuggested ? Colors.green : null),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (isSuggested)
-                              const Text('ŹRÓDŁO DO KONTYNUOWANIA OGLĄDANIA', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                            Row(
-                              children: [
-                                Text(source.sourceName, style: TextStyle(color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 8),
-                                const Text('•'),
-                                const SizedBox(width: 8),
-                                Text('Jakość: ${source.quality}'),
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: Icon(Icons.play_circle_fill, color: isSuggested ? Colors.green : Theme.of(context).colorScheme.primary, size: 32),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _navigateToPlayer(source);
-                        },
-                      );
-                    },
+                    itemBuilder: (context, index) => _buildSourceTile(context, sortedSources[index], savedSource, isTV: false),
                   ),
                 ),
               ],
             ),
           ),
-        );
+        ),
+      );
+    }
+  }
+
+  Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource, {required bool isTV}) {
+    final isSuggested = savedSource != null && source.url == savedSource.pageUrl;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      selected: isSuggested,
+      selectedTileColor: Colors.green.withOpacity(0.1),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      leading: CircleAvatar(
+        backgroundColor: isSuggested ? Colors.green : colorScheme.primaryContainer,
+        child: Icon(
+          isSuggested ? Icons.history : (source.sourceName.toLowerCase().contains('ekino') ? Icons.movie_filter : Icons.language),
+          color: isSuggested ? Colors.white : colorScheme.onPrimaryContainer,
+          size: isTV ? 20 : 24,
+        ),
+      ),
+      title: Text(
+        source.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: isSuggested ? FontWeight.bold : FontWeight.w600,
+          color: isSuggested ? Colors.green : null,
+          fontSize: isTV ? 14 : 16,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isSuggested)
+            const Text('ŹRÓDŁO DO KONTYNUOWANIA OGLĄDANIA', style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              Text(
+                source.sourceName,
+                style: TextStyle(
+                  color: isSuggested ? Colors.green : colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: isTV ? 12 : 13,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text('•', style: TextStyle(fontSize: 10)),
+              const SizedBox(width: 8),
+              Text('Jakość: ${source.quality}', style: TextStyle(fontSize: isTV ? 12 : 13)),
+            ],
+          ),
+        ],
+      ),
+      trailing: Icon(
+        Icons.play_circle_fill,
+        color: isSuggested ? Colors.green : colorScheme.primary,
+        size: isTV ? 28 : 32,
+      ),
+      onTap: () {
+        Navigator.pop(context);
+        _navigateToPlayer(source);
       },
     );
   }
@@ -203,9 +251,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildMobileAppBar(ThemeData theme) {
     return SliverAppBar(
-      expandedHeight: 400,
-      pinned: true,
-      stretch: true,
+      expandedHeight: 400, pinned: true, stretch: true,
       leading: _buildBackButton(),
       actions: [_buildFavoriteButton()],
       flexibleSpace: FlexibleSpaceBar(
@@ -213,16 +259,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           fit: StackFit.expand,
           children: [
             _buildPosterImage(),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black45, Colors.black],
-                  stops: [0.3, 0.7, 1.0],
-                ),
-              ),
-            ),
+            const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black45, Colors.black], stops: [0.3, 0.7, 1.0]))),
           ],
         ),
       ),
@@ -236,13 +273,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            width: 220,
-            child: AspectRatio(
-              aspectRatio: 2/3,
-              child: _buildPosterImage(),
-            ),
-          ),
+          child: SizedBox(width: 220, child: AspectRatio(aspectRatio: 2/3, child: _buildPosterImage())),
         ),
         const SizedBox(width: 60),
         Expanded(
@@ -252,12 +283,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      widget.item.title,
-                      style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                    ),
-                  ),
+                  Expanded(child: Text(widget.item.title, style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface))),
                   _buildFavoriteButton(isLarge: true),
                 ],
               ),
@@ -268,12 +294,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               const SizedBox(height: 24),
               Text('Opis', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text(
-                widget.item.description ?? 'Brak opisu.',
-                maxLines: 6,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7), height: 1.3),
-              ),
+              Text(widget.item.description ?? 'Brak opisu.', maxLines: 6, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7), height: 1.3)),
               const SizedBox(height: 24),
               if (!isMovie) _buildSeasonSelector(),
             ],
@@ -376,13 +397,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           child: CircleAvatar(
             radius: isLarge ? 24 : 20,
             backgroundColor: isLarge ? Theme.of(context).colorScheme.surfaceContainerHigh : Colors.black.withOpacity(0.3),
-            child: IconButton(
-              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.red : (isLarge ? null : Colors.white), size: isLarge ? 28 : 24),
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
-              },
-            ),
+            child: IconButton(icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.red : (isLarge ? null : Colors.white), size: isLarge ? 28 : 24), onPressed: () { HapticFeedback.mediumImpact(); ref.read(favoritesProvider.notifier).toggleFavorite(widget.item); }),
           ),
         );
       },
@@ -408,17 +423,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
                   child: DropdownButton<int>(
-                    value: _selectedSeason,
-                    underline: const SizedBox(),
-                    items: regularSeasons.map<DropdownMenuItem<int>>((season) {
-                      return DropdownMenuItem(
-                        value: season['season_number'],
-                        child: Text(season['name'] ?? 'Sezon ${season['season_number']}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _selectedSeason = value);
-                    },
+                    value: _selectedSeason, underline: const SizedBox(),
+                    items: regularSeasons.map<DropdownMenuItem<int>>((season) => DropdownMenuItem(value: season['season_number'], child: Text(season['name'] ?? 'Sezon ${season['season_number']}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)))).toList(),
+                    onChanged: (value) { if (value != null) setState(() => _selectedSeason = value); },
                   ),
                 ),
               ],
@@ -446,9 +453,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Material(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.antiAlias,
+                    color: theme.colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16), clipBehavior: Clip.antiAlias,
                     child: InkWell(
                       onTap: _isLoading ? null : () => _playMedia(season: _selectedSeason, episode: episode.episodeNumber),
                       child: Padding(
@@ -459,12 +464,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                             Stack(
                               alignment: Alignment.center,
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: episode.stillPath != null
-                                      ? Image.network('${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}', width: 160, height: 90, fit: BoxFit.cover, errorBuilder: (_,__,___) => _buildEpisodePlaceholder())
-                                      : _buildEpisodePlaceholder(),
-                                ),
+                                ClipRRect(borderRadius: BorderRadius.circular(12), child: episode.stillPath != null ? Image.network('${dotenv.env['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/w200'}${episode.stillPath}', width: 160, height: 90, fit: BoxFit.cover, errorBuilder: (_,__,___) => _buildEpisodePlaceholder()) : _buildEpisodePlaceholder()),
                                 if (_isLoading) const CircularProgressIndicator(strokeWidth: 2) else Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), shape: BoxShape.circle), child: const Icon(Icons.play_arrow, color: Colors.white, size: 24)),
                               ],
                             ),
