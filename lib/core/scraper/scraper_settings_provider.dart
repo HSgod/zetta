@@ -3,27 +3,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ScraperSettings {
   final Map<String, bool> enabledScrapers;
-
   ScraperSettings({required this.enabledScrapers});
 
   ScraperSettings copyWith({Map<String, bool>? enabledScrapers}) {
-    return ScraperSettings(
-      enabledScrapers: enabledScrapers ?? this.enabledScrapers,
-    );
+    return ScraperSettings(enabledScrapers: enabledScrapers ?? this.enabledScrapers);
   }
 }
 
-class ScraperSettingsNotifier extends StateNotifier<ScraperSettings> {
-  static const String _prefKey = 'enabled_scrapers';
+class ScraperSettingsNotifier extends Notifier<ScraperSettings> {
+  static const String _prefKey = 'enabled_scrapers_list';
 
-  ScraperSettingsNotifier() : super(ScraperSettings(enabledScrapers: {
-    'Ekino-TV': false,
-    'Obejrzyj.to': false,
-  })) {
-    _loadSettings();
+  @override
+  ScraperSettings build() {
+    // Domy\u015blny stan
+    _loadInitial();
+    return ScraperSettings(enabledScrapers: {
+      'Ekino-TV': false,
+      'Obejrzyj.to': false,
+    });
   }
 
-  Future<void> _loadSettings() async {
+  Future<void> _loadInitial() async {
     final prefs = await SharedPreferences.getInstance();
     final List<String>? enabledList = prefs.getStringList(_prefKey);
     
@@ -50,6 +50,6 @@ class ScraperSettingsNotifier extends StateNotifier<ScraperSettings> {
   }
 }
 
-final scraperSettingsProvider = StateNotifierProvider<ScraperSettingsNotifier, ScraperSettings>((ref) {
+final scraperSettingsProvider = NotifierProvider<ScraperSettingsNotifier, ScraperSettings>(() {
   return ScraperSettingsNotifier();
 });

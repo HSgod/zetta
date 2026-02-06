@@ -55,7 +55,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildSectionHeader('Źródła'),
                 _buildSettingsCard([
                   _buildListTile(
-                    title: 'Wybór scrapera',
+                    title: 'Wybór źródła',
                     subtitle: 'Włącz lub wyłącz poszczególne serwisy',
                     icon: Icons.source_rounded,
                     onTap: () => context.push('/settings/scrapers'),

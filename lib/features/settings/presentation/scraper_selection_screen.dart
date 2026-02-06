@@ -12,19 +12,19 @@ class ScraperSelectionScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wybór scrapera'),
+        title: const Text('Wybór źródła'),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
-          _buildScraperTile(
+          _buildSourceTile(
             context,
             ref,
             'Ekino-TV',
             settings.enabledScrapers['Ekino-TV'] ?? false,
             true,
           ),
-          _buildScraperTile(
+          _buildSourceTile(
             context,
             ref,
             'Obejrzyj.to',
@@ -32,16 +32,16 @@ class ScraperSelectionScreen extends ConsumerWidget {
             true,
           ),
           const Divider(),
-          _buildScraperTile(context, ref, 'Zaluknij.cc', false, false),
-          _buildScraperTile(context, ref, 'Filman.cc', false, false),
-          _buildScraperTile(context, ref, 'CDA-HD.cc', false, false),
-          _buildScraperTile(context, ref, 'Zeriun.cc', false, false),
+          _buildSourceTile(context, ref, 'Zaluknij.cc', false, false),
+          _buildSourceTile(context, ref, 'Filman.cc', false, false),
+          _buildSourceTile(context, ref, 'CDA-HD.cc', false, false),
+          _buildSourceTile(context, ref, 'Zeriun.cc', false, false),
         ],
       ),
     );
   }
 
-  Widget _buildScraperTile(
+  Widget _buildSourceTile(
     BuildContext context,
     WidgetRef ref,
     String name,

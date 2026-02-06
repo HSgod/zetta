@@ -44,7 +44,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Musisz włączyć co najmniej jeden scraper w ustawieniach.'),
+            content: Text('Musisz włączyć co najmniej jedno źródło w ustawieniach.'),
             backgroundColor: Colors.orange,
           ),
         );
