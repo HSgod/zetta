@@ -75,7 +75,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildSectionHeader('O aplikacji'),
                 _buildSettingsCard([
                   _buildListTile(
-                    title: 'Zetta v1.0.2',
+                    title: 'Zetta v1.0.3',
                     subtitle: 'Wersja stabilna',
                     icon: Icons.verified_user_rounded,
                   ),
