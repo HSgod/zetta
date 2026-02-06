@@ -11,6 +11,7 @@ import '../../../core/scraper/base_scraper.dart';
 import '../../player/presentation/player_args.dart';
 import '../../home/presentation/widgets/media_card.dart';
 import '../../library/presentation/providers/library_provider.dart';
+import '../../../core/scraper/scraper_settings_provider.dart';
 
 final tvDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, id) async {
   final service = ref.watch(tmdbServiceProvider);
@@ -36,6 +37,21 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   bool _isLoading = false;
 
   Future<void> _playMedia({int? season, int? episode}) async {
+    final settings = ref.read(scraperSettingsProvider);
+    final hasActiveScraper = settings.enabledScrapers.values.any((v) => v);
+
+    if (!hasActiveScraper) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Musisz włączyć co najmniej jeden scraper w ustawieniach.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final scraper = ref.read(scraperServiceProvider);
@@ -52,7 +68,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       } else {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nie znaleziono aktywnych źródeł wideo.')),
+            const SnackBar(content: Text('Nie znaleziono aktywnych źródeł wideo dla tego tytułu.')),
           );
         }
       }
