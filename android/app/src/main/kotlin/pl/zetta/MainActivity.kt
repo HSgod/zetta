@@ -1,4 +1,4 @@
-package pl.zetta.zetta
+package pl.zetta
 
 import io.flutter.embedding.android.FlutterActivity
 

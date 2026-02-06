@@ -28,6 +28,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             floating: true,
             pinned: true,
             title: const Text('Ustawienia'),
+            centerTitle: true,
           ),
           SliverToBoxAdapter(
             child: Column(
