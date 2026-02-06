@@ -4,19 +4,22 @@ import '../../features/home/domain/media_item.dart';
 import 'base_scraper.dart';
 import 'ekino_scraper.dart';
 import 'obejrzyj_to_scraper.dart';
+import 'scraper_settings_provider.dart';
 
 class ScraperService {
+  final Ref _ref;
   final List<BaseScraper> _scrapers = [
     EkinoScraper(),
     ObejrzyjToScraper(),
   ];
+
+  ScraperService(this._ref);
 
   Future<bool> isAvailable(String title, MediaType type) async {
     String cleanTitle = title.split(':').first.split('-').first.trim().toLowerCase();
     
     if (_scrapers.isEmpty) return false;
 
-    // Tworzymy listę zadań sprawdzania dla każdego scrapera
     final List<Future<bool>> checks = _scrapers.map((scraper) async {
       try {
         final searchResults = await scraper.search(cleanTitle, type);
@@ -26,8 +29,6 @@ class ScraperService {
       }
     }).toList();
 
-    // Specjalna logika: czekamy na pierwszy, który zwróci TRUE.
-    // Jeśli wszystkie zwrócą FALSE, to zwracamy FALSE.
     int finished = 0;
     final completer = Completer<bool>();
 
@@ -47,21 +48,26 @@ class ScraperService {
   }
 
   Future<List<VideoSource>> findStream(String title, MediaType type, {int? season, int? episode}) async {
+    final settings = _ref.read(scraperSettingsProvider);
     String cleanTitle = title.split(':').first.split('-').first.trim();
-    
     final query = cleanTitle;
 
     List<VideoSource> allSources = [];
     
-    // Szukamy równolegle we wszystkich scraperach
-    final results = await Future.wait(_scrapers.map((scraper) async {
+    final activeScrapers = _scrapers.where((s) {
+      final name = s is EkinoScraper ? 'Ekino-TV' : (s is ObejrzyjToScraper ? 'Obejrzyj.to' : '');
+      return settings.enabledScrapers[name] ?? false;
+    }).toList();
+
+    if (activeScrapers.isEmpty) return [];
+
+    final results = await Future.wait(activeScrapers.map((scraper) async {
       try {
         final searchResults = await scraper.search(query, type);
         if (searchResults.isNotEmpty) {
-          // Filtrujemy wyniki, aby tytuł się zgadzał (unikanie np. "Pomoc" zamiast "Pomoc domowa")
           final bestMatch = searchResults.firstWhere(
             (r) => r.title.toLowerCase().contains(cleanTitle.toLowerCase()),
-            orElse: () => searchResults.first, // fallback do pierwszego jeśli filtr zawiedzie
+            orElse: () => searchResults.first,
           );
 
           if (!bestMatch.title.toLowerCase().contains(cleanTitle.toLowerCase())) {
@@ -70,9 +76,7 @@ class ScraperService {
 
           return await scraper.getSources(bestMatch, season: season, episode: episode);
         }
-      } catch (e) {
-        // Ignorujemy błędy poszczególnych scraperów w wersji stabilnej
-      }
+      } catch (e) {}
       return <VideoSource>[];
     }));
 
@@ -84,4 +88,4 @@ class ScraperService {
   }
 }
 
-final scraperServiceProvider = Provider((ref) => ScraperService());
+final scraperServiceProvider = Provider((ref) => ScraperService(ref));
