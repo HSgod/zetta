@@ -62,21 +62,19 @@ class ScaffoldWithNavBar extends StatelessWidget {
                       onDestinationSelected: (int index) => _onTap(context, index),
                       labelType: NavigationRailLabelType.none,
                       groupAlignment: 0.0,
-                      leading: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          Image.asset(
-                            'assets/images/logoapp.webp',
-                            height: 40,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              Icons.movie_filter_rounded,
-                              size: 40,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                      leading: Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Image.asset(
+                          'assets/images/logoapp.webp',
+                          height: 40,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.movie_filter_rounded,
+                            size: 40,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
-                          const SizedBox(height: 20),
-                        ],
+                        ),
                       ),
+                      trailing: const SizedBox(height: 60),
                       unselectedIconTheme: IconThemeData(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         size: 32,

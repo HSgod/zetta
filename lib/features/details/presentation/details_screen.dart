@@ -188,8 +188,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 40 : 20,
-                vertical: isWide ? 30 : 20,
+                horizontal: isWide ? 60 : 20,
+                vertical: isWide ? 40 : 20,
               ),
               child: isWide ? _buildWideLayout(theme, isMovie) : _buildMobileLayout(theme, isMovie),
             ),
@@ -231,7 +231,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildWideLayout(ThemeData theme, bool isMovie) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -243,10 +244,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 60),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Row(
                 children: [
