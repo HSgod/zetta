@@ -39,6 +39,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   BoxFit _videoFill = BoxFit.contain;
   final List<StreamSubscription> _subscriptions = [];
+  final FocusNode _playPauseFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -201,21 +202,40 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   void _startHideTimer() {
     _hideControlsTimer?.cancel();
     _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
+      if (mounted && player.state.playing) {
         setState(() => _showControls = false);
       }
     });
   }
 
+  void _togglePlayPause() {
+    if (_isExiting) return;
+    player.playOrPause();
+    if (!player.state.playing) {
+      setState(() => _showControls = true);
+      _playPauseFocusNode.requestFocus();
+    } else {
+      _startHideTimer();
+    }
+  }
+
   void _toggleControls() {
     if (_isExiting) return;
-    setState(() => _showControls = !_showControls);
+    setState(() {
+      _showControls = !_showControls;
+      if (_showControls) {
+        _playPauseFocusNode.requestFocus();
+      }
+    });
     if (_showControls) _startHideTimer();
   }
 
   void _showControlsBriefly() {
     if (_isExiting) return;
-    setState(() => _showControls = true);
+    setState(() {
+      _showControls = true;
+      _playPauseFocusNode.requestFocus();
+    });
     _startHideTimer();
   }
 
@@ -247,6 +267,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     for (var s in _subscriptions) {
       s.cancel();
     }
+    _playPauseFocusNode.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -287,8 +308,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.select): () => _toggleControls(),
-        const SingleActivator(LogicalKeyboardKey.enter): () => _toggleControls(),
+        const SingleActivator(LogicalKeyboardKey.select): () => _togglePlayPause(),
+        const SingleActivator(LogicalKeyboardKey.enter): () => _togglePlayPause(),
         const SingleActivator(LogicalKeyboardKey.arrowUp): () => _showControlsBriefly(),
         const SingleActivator(LogicalKeyboardKey.arrowDown): () => _showControlsBriefly(),
         const SingleActivator(LogicalKeyboardKey.arrowLeft): () {
@@ -493,10 +514,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                           builder: (context, snapshot) {
                             final isPlaying = snapshot.data ?? false;
                             return IconButton(
+                              focusNode: _playPauseFocusNode,
                               icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 54),
                               onPressed: () {
                                 HapticFeedback.mediumImpact();
-                                player.playOrPause();
+                                _togglePlayPause();
                               },
                             );
                           },
