@@ -134,6 +134,17 @@ class ObejrzyjToScraper extends BaseScraper {
     final quality = v['quality'] ?? 'Auto';
     final langType = v['language_type']?.toString() ?? '';
     
+    // Wyciąganie napisów
+    List<SubtitleSource>? subtitles;
+    final subsJson = v['subtitles'] as List?;
+    if (subsJson != null && subsJson.isNotEmpty) {
+      subtitles = subsJson.map((s) => SubtitleSource(
+        url: s['src'] ?? '',
+        label: s['label'] ?? (s['language'] ?? 'Napisy'),
+        language: s['language'],
+      )).where((s) => s.url.isNotEmpty).toList();
+    }
+    
     String label = nameStr;
     if (langType.toLowerCase().contains('lektor')) label += ' (Lektor)';
     else if (langType.toLowerCase().contains('napisy')) label += ' (Napisy)';
@@ -151,6 +162,7 @@ class ObejrzyjToScraper extends BaseScraper {
       title: label,
       quality: quality,
       sourceName: name,
+      subtitles: subtitles,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': src,

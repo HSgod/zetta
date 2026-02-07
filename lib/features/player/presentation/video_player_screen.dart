@@ -146,7 +146,26 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
     player.stop().then((_) {
       if (_isExiting) return;
-      player.open(Media(streamUrl, httpHeaders: headers)).then((_) {
+      
+      // Przygotuj listę napisów zewnętrznych
+      final List<SubtitleTrack> externalSubtitles = [];
+      if (widget.args.subtitles != null) {
+        for (var sub in widget.args.subtitles!) {
+          externalSubtitles.add(SubtitleTrack.uri(sub.url, title: sub.label, language: sub.language));
+        }
+      }
+
+      player.open(
+        Media(streamUrl, httpHeaders: headers),
+        play: true,
+      ).then((_) {
+        // Dodaj napisy po otwarciu mediów
+        if (externalSubtitles.isNotEmpty) {
+          for (var track in externalSubtitles) {
+            player.setSubtitleTrack(track);
+          }
+        }
+        
         _loadProgress();
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted && player.state.playing && !_isExiting) {
@@ -290,6 +309,52 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     Timer(const Duration(milliseconds: 600), () {
       if (mounted) setState(() => _gestureType = null);
     });
+  }
+
+  void _showSubtitlePicker() {
+    _hideControlsTimer?.cancel();
+    final tracks = player.state.tracks.subtitle;
+    final current = player.state.track.subtitle;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black.withOpacity(0.8),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Napisy', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: tracks.length,
+                itemBuilder: (context, index) {
+                  final track = tracks[index];
+                  final isSelected = track == current;
+                  return ListTile(
+                    leading: Icon(Icons.subtitles, color: isSelected ? Colors.redAccent : Colors.white70),
+                    title: Text(
+                      track.title ?? track.language ?? (track.id == 'no' ? 'Wyłączone' : 'Ścieżka ${index}'),
+                      style: TextStyle(color: isSelected ? Colors.redAccent : Colors.white, fontWeight: isSelected ? FontWeight.bold : null),
+                    ),
+                    trailing: isSelected ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                    onTap: () {
+                      player.setSubtitleTrack(track);
+                      Navigator.pop(context);
+                      _startHideTimer();
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _toggleFill() {
@@ -482,6 +547,10 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                       ),
                     ),
                     _buildPillButton(Icons.aspect_ratio_rounded, _toggleFill),
+                    if (widget.args.subtitles != null && widget.args.subtitles!.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      _buildPillButton(Icons.subtitles_rounded, _showSubtitlePicker),
+                    ],
                   ],
                 ),
               ),

@@ -87,6 +87,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       videoUrl: source.isWebView ? null : source.url,
       headers: source.headers,
       automationScript: source.automationScript,
+      subtitles: source.subtitles,
     ));
   }
 
