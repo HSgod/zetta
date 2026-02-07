@@ -130,11 +130,26 @@ class ObejrzyjToScraper extends BaseScraper {
 
   VideoSource _mapJsonToSource(dynamic v) {
     final src = v['src'] ?? '';
-    final nameStr = v['name'] ?? 'Obejrzyj.to';
     final quality = v['quality'] ?? 'Auto';
-    final langType = v['language_type']?.toString() ?? '';
     
-    // Wyciąganie napisów
+    // Pr\u00f3ba wyci\u0105gni\u0119cia nazwy hosta z URL
+    String hostName = 'Wideo';
+    try {
+      if (src.isNotEmpty) {
+        final uri = Uri.parse(src);
+        final parts = uri.host.split('.');
+        if (parts.length >= 2) {
+          final rawHost = parts[parts.length - 2];
+          hostName = rawHost[0].toUpperCase() + rawHost.substring(1);
+        }
+      }
+    } catch (_) {}
+
+    // Wyci\u0105ganie etykiet j\u0119zykowych
+    final langLabel = v['language_label']?.toString() ?? '';
+    final subLabel = v['subtitle_label']?.toString() ?? '';
+    
+    // Wyci\u0105ganie napis\u00f3w
     List<SubtitleSource>? subtitles;
     final subsJson = v['subtitles'] as List?;
     if (subsJson != null && subsJson.isNotEmpty) {
@@ -145,9 +160,21 @@ class ObejrzyjToScraper extends BaseScraper {
       )).where((s) => s.url.isNotEmpty).toList();
     }
     
-    String label = nameStr;
-    if (langType.toLowerCase().contains('lektor')) label += ' (Lektor)';
-    else if (langType.toLowerCase().contains('napisy')) label += ' (Napisy)';
+    String label = hostName;
+    List<String> tags = [];
+    if (langLabel.isNotEmpty) tags.add(langLabel);
+    if (subLabel.isNotEmpty && subLabel != langLabel) tags.add(subLabel);
+    
+    // Fallback do language_type je\u015bli etykiety s\u0105 puste
+    if (tags.isEmpty) {
+      final langType = v['language_type']?.toString().toLowerCase() ?? '';
+      if (langType.contains('lektor')) tags.add('Lektor');
+      if (langType.contains('napisy')) tags.add('Napisy');
+    }
+
+    if (tags.isNotEmpty) {
+      label += ' (${tags.join(' & ')})';
+    }
 
     String origin = 'https://obejrzyj.to';
     try {
