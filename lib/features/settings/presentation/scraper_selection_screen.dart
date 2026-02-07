@@ -7,36 +7,39 @@ class ScraperSelectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(scraperSettingsProvider);
-    final theme = Theme.of(context);
-
+    final settingsAsync = ref.watch(scraperSettingsProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wybór źródła'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          _buildSourceTile(
-            context,
-            ref,
-            'Ekino-TV',
-            settings.enabledScrapers['Ekino-TV'] ?? false,
-            true,
-          ),
-          _buildSourceTile(
-            context,
-            ref,
-            'Obejrzyj.to',
-            settings.enabledScrapers['Obejrzyj.to'] ?? false,
-            true,
-          ),
-          const Divider(),
-          _buildSourceTile(context, ref, 'Zaluknij.cc', false, false),
-          _buildSourceTile(context, ref, 'Filman.cc', false, false),
-          _buildSourceTile(context, ref, 'CDA-HD.cc', false, false),
-          _buildSourceTile(context, ref, 'Zeriun.cc', false, false),
-        ],
+      body: settingsAsync.when(
+        data: (settings) => ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
+            _buildSourceTile(
+              context,
+              ref,
+              'Ekino-TV',
+              settings.enabledScrapers['Ekino-TV'] ?? false,
+              true,
+            ),
+            _buildSourceTile(
+              context,
+              ref,
+              'Obejrzyj.to',
+              settings.enabledScrapers['Obejrzyj.to'] ?? false,
+              true,
+            ),
+            const Divider(),
+            _buildSourceTile(context, ref, 'Zaluknij.cc', false, false),
+            _buildSourceTile(context, ref, 'Filman.cc', false, false),
+            _buildSourceTile(context, ref, 'CDA-HD.cc', false, false),
+            _buildSourceTile(context, ref, 'Zeriun.cc', false, false),
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Błąd: $e')),
       ),
     );
   }

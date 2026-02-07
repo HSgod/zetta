@@ -48,7 +48,7 @@ class ScraperService {
   }
 
   Future<List<VideoSource>> findStream(String title, MediaType type, {int? season, int? episode}) async {
-    final settings = _ref.read(scraperSettingsProvider);
+    final settingsValue = await _ref.read(scraperSettingsProvider.future);
     String cleanTitle = title.split(':').first.split('-').first.trim();
     final query = cleanTitle;
 
@@ -56,7 +56,7 @@ class ScraperService {
     
     final activeScrapers = _scrapers.where((s) {
       final name = s is EkinoScraper ? 'Ekino-TV' : (s is ObejrzyjToScraper ? 'Obejrzyj.to' : '');
-      return settings.enabledScrapers[name] ?? false;
+      return settingsValue.enabledScrapers[name] ?? false;
     }).toList();
 
     if (activeScrapers.isEmpty) return [];

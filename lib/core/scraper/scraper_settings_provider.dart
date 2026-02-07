@@ -10,36 +10,36 @@ class ScraperSettings {
   }
 }
 
-class ScraperSettingsNotifier extends Notifier<ScraperSettings> {
+class ScraperSettingsNotifier extends AsyncNotifier<ScraperSettings> {
   static const String _prefKey = 'enabled_scrapers_list';
 
   @override
-  ScraperSettings build() {
-    // Domy\u015blny stan
-    _loadInitial();
+  Future<ScraperSettings> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String>? enabledList = prefs.getStringList(_prefKey);
+    
+    if (enabledList != null) {
+      return ScraperSettings(enabledScrapers: {
+        'Ekino-TV': enabledList.contains('Ekino-TV'),
+        'Obejrzyj.to': enabledList.contains('Obejrzyj.to'),
+      });
+    }
+
+    // Domy\u015blnie wszystkie wy\u0142\u0105czone przy pierwszym uruchomieniu
     return ScraperSettings(enabledScrapers: {
       'Ekino-TV': false,
       'Obejrzyj.to': false,
     });
   }
 
-  Future<void> _loadInitial() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? enabledList = prefs.getStringList(_prefKey);
-    
-    if (enabledList != null) {
-      final Map<String, bool> loaded = {
-        'Ekino-TV': enabledList.contains('Ekino-TV'),
-        'Obejrzyj.to': enabledList.contains('Obejrzyj.to'),
-      };
-      state = state.copyWith(enabledScrapers: loaded);
-    }
-  }
-
   Future<void> toggleScraper(String name, bool enabled) async {
-    final Map<String, bool> updated = Map.from(state.enabledScrapers);
+    final currentSettings = state.value;
+    if (currentSettings == null) return;
+
+    final Map<String, bool> updated = Map.from(currentSettings.enabledScrapers);
     updated[name] = enabled;
-    state = state.copyWith(enabledScrapers: updated);
+    
+    state = AsyncData(currentSettings.copyWith(enabledScrapers: updated));
 
     final prefs = await SharedPreferences.getInstance();
     final List<String> enabledList = updated.entries
@@ -50,6 +50,6 @@ class ScraperSettingsNotifier extends Notifier<ScraperSettings> {
   }
 }
 
-final scraperSettingsProvider = NotifierProvider<ScraperSettingsNotifier, ScraperSettings>(() {
+final scraperSettingsProvider = AsyncNotifierProvider<ScraperSettingsNotifier, ScraperSettings>(() {
   return ScraperSettingsNotifier();
 });

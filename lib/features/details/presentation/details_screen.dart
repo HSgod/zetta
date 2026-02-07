@@ -52,8 +52,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         _showSourcePicker(sources, savedSource: saved);
       } else {
         if (mounted) {
-          final settings = ref.read(scraperSettingsProvider);
-          final hasActiveScraper = settings.enabledScrapers.values.any((v) => v);
+          final settingsValue = ref.read(scraperSettingsProvider).value;
+          final hasActiveScraper = settingsValue?.enabledScrapers.values.any((v) => v) ?? false;
           
           if (!hasActiveScraper) {
             ScaffoldMessenger.of(context).showSnackBar(
