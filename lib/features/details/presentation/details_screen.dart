@@ -100,6 +100,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     final scraperNames = groupedSources.keys.toList();
     String? selectedScraper;
 
+    // Znajd\u017a konkretny obiekt VideoSource, kt\u00f3ry odpowiada zapisanemu \u017ar\u00f3d\u0142u
+    VideoSource? suggestedVideoSource;
+    if (savedSource != null) {
+      try {
+        suggestedVideoSource = sources.firstWhere((s) => s.url == savedSource.pageUrl);
+      } catch (_) {}
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -108,7 +116,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           final isWide = MediaQuery.of(context).size.width > 900;
-          final title = selectedScraper == null ? 'Wybierz źródło' : selectedScraper!;
+          final title = selectedScraper == null ? 'Wybierz \u017ar\u00f3d\u0142o' : selectedScraper!;
           final items = selectedScraper == null 
               ? scraperNames 
               : groupedSources[selectedScraper]!;
@@ -141,6 +149,25 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  
+                  if (selectedScraper == null && suggestedVideoSource != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('OSTATNIO U\u017bYWANE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.green)),
+                          const SizedBox(height: 8),
+                          _buildSourceTile(context, suggestedVideoSource!, savedSource, isTV: isWide),
+                          const SizedBox(height: 16),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          const Text('WSZYSTKIE SKRAPERY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   Flexible(
                     child: ListView.separated(
                       shrinkWrap: true,
@@ -157,7 +184,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                               child: Icon(name.toLowerCase().contains('ekino') ? Icons.movie_filter : Icons.language),
                             ),
                             title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Dostępnych źródeł: $count'),
+                            subtitle: Text('Dost\u0119pnych \u017ar\u00f3de\u0142: $count'),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => setState(() => selectedScraper = name),
                           );

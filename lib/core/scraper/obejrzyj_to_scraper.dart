@@ -153,11 +153,17 @@ class ObejrzyjToScraper extends BaseScraper {
     List<SubtitleSource>? subtitles;
     final subsJson = v['subtitles'] as List?;
     if (subsJson != null && subsJson.isNotEmpty) {
-      subtitles = subsJson.map((s) => SubtitleSource(
-        url: s['src'] ?? '',
-        label: s['label'] ?? (s['language'] ?? 'Napisy'),
-        language: s['language'],
-      )).where((s) => s.url.isNotEmpty).toList();
+      subtitles = subsJson.map((s) {
+        String subUrl = s['src'] ?? '';
+        if (subUrl.startsWith('/')) {
+          subUrl = 'https://obejrzyj.to$subUrl';
+        }
+        return SubtitleSource(
+          url: subUrl,
+          label: s['label'] ?? (s['language'] ?? 'Napisy'),
+          language: s['language'],
+        );
+      }).where((s) => s.url.isNotEmpty).toList();
     }
     
     String label = hostName;
