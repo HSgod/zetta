@@ -162,7 +162,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                           const SizedBox(height: 16),
                           const Divider(),
                           const SizedBox(height: 8),
-                          const Text('WSZYSTKIE SKRAPERY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.grey)),
+                          const Text('WSZYSTKIE ŹRÓDŁA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.grey)),
                         ],
                       ),
                     ),

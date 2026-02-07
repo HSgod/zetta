@@ -108,7 +108,7 @@ class ObejrzyjToScraper extends BaseScraper {
 
     final mainVideo = watchData['video'];
     if (mainVideo != null) {
-      final source = _mapJsonToSource(mainVideo);
+      final source = _mapJsonToSource(mainVideo, 0);
       if (!source.title.toLowerCase().contains('ultrastream')) {
         sources.add(source);
       }
@@ -116,9 +116,10 @@ class ObejrzyjToScraper extends BaseScraper {
 
     final alternatives = watchData['alternative_videos'] as List?;
     if (alternatives != null) {
-      for (var v in alternatives) {
+      for (int i = 0; i < alternatives.length; i++) {
+        final v = alternatives[i];
         if (v['id']?.toString() != mainVideo?['id']?.toString()) {
-          final source = _mapJsonToSource(v);
+          final source = _mapJsonToSource(v, i + 1);
           if (!source.title.toLowerCase().contains('ultrastream')) {
             sources.add(source);
           }
@@ -128,11 +129,13 @@ class ObejrzyjToScraper extends BaseScraper {
     return sources;
   }
 
-  VideoSource _mapJsonToSource(dynamic v) {
+  VideoSource _mapJsonToSource(dynamic v, int index) {
     final src = v['src'] ?? '';
     final quality = v['quality'] ?? 'Auto';
     
-    // Pr\u00f3ba wyci\u0105gni\u0119cia nazwy hosta z URL
+    // Zapewnienie unikalności URL dla historii
+    final uniqueUrl = src.contains('#') ? src.split('#').first + '#$index' : '$src#$index';
+
     String hostName = 'Wideo';
     try {
       if (src.isNotEmpty) {
@@ -145,11 +148,9 @@ class ObejrzyjToScraper extends BaseScraper {
       }
     } catch (_) {}
 
-    // Wyci\u0105ganie etykiet j\u0119zykowych
     final langLabel = v['language_label']?.toString() ?? '';
     final subLabel = v['subtitle_label']?.toString() ?? '';
     
-    // Wyci\u0105ganie napis\u00f3w
     List<SubtitleSource>? subtitles;
     final subsJson = v['subtitles'] as List?;
     if (subsJson != null && subsJson.isNotEmpty) {
@@ -171,7 +172,6 @@ class ObejrzyjToScraper extends BaseScraper {
     if (langLabel.isNotEmpty) tags.add(langLabel);
     if (subLabel.isNotEmpty && subLabel != langLabel) tags.add(subLabel);
     
-    // Fallback do language_type je\u015bli etykiety s\u0105 puste
     if (tags.isEmpty) {
       final langType = v['language_type']?.toString().toLowerCase() ?? '';
       if (langType.contains('lektor')) tags.add('Lektor');
@@ -191,7 +191,7 @@ class ObejrzyjToScraper extends BaseScraper {
     } catch (_) {}
 
     return VideoSource(
-      url: src,
+      url: uniqueUrl,
       title: label,
       quality: quality,
       sourceName: name,
@@ -210,21 +210,8 @@ class ObejrzyjToScraper extends BaseScraper {
           const maxAttempts = 30;
           function run() {
             if (attempts++ > maxAttempts) return;
-            
-            // Wyciszenie wszystkich video, aby unikn\u0105\u0107 blokady autoplay
             document.querySelectorAll('video').forEach(v => { v.muted = true; v.volume = 0; });
-
-            const selectors = [
-              '.vjs-big-play-button', 
-              '.play-button', 
-              '#play', 
-              '#vjs_video_3', 
-              '.play_icon', 
-              'button[aria-label="Play"]',
-              '.jw-display-icon-container',
-              '#play-btn'
-            ];
-            
+            const selectors = ['.vjs-big-play-button', '.play-button', '#play', '#vjs_video_3', '.play_icon', 'button[aria-label="Play"]', '.jw-display-icon-container', '#play-btn'];
             let clicked = false;
             selectors.forEach(s => {
               const el = document.querySelector(s);
@@ -234,16 +221,12 @@ class ObejrzyjToScraper extends BaseScraper {
                 clicked = true;
               }
             });
-
-            // Jeśli nic nie kliknięto, spróbuj kliknąć w środek
             if (!clicked && attempts % 5 === 0) {
               const center = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
               if (center) center.click();
             }
-
             setTimeout(run, 1500);
           }
-          // Blokada otwierania nowych okien (reklam)
           window.open = function() { return { focus: function() {} }; };
           setTimeout(run, 1500);
         })();
