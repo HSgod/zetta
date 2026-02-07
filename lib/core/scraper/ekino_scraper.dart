@@ -81,25 +81,58 @@ class EkinoScraper extends BaseScraper {
       final response = await http.get(Uri.parse(targetUrl), headers: _headers);
       if (response.statusCode == 200) {
         var document = parse(response.body);
+        List<VideoSource> sources = [];
+
+        // Szukamy przycisków/linków do różnych playerów
+        var playerButtons = document.querySelectorAll('.players li, .player-list li, .player-item');
         
-        bool hasPlayer = document.querySelector('.players') != null || 
-                         document.querySelector('img[src*="kliknij_aby_obejrzec"]') != null ||
-                         document.querySelector('.buttonprch') != null ||
-                         document.querySelector('.warning_ch') != null ||
-                         document.body?.text.contains('wybierz odtwarzacz') == true;
+        if (playerButtons.isNotEmpty) {
+          for (var btn in playerButtons) {
+            final nameText = btn.text.trim();
+            // Wykluczamy "Odtwarzacz bez limitów" oraz puste nazwy
+            if (nameText.isEmpty || nameText.toLowerCase().contains('bez limitów')) continue;
 
-        if (!hasPlayer) return [];
+            // Ekino często ładuje playery przez linki lub atrybuty data
+            final link = btn.querySelector('a');
+            String? playerUrl = link?.attributes['href'];
+            
+            if (playerUrl != null) {
+              if (!playerUrl.startsWith('http')) playerUrl = '$_baseUrl$playerUrl';
+              
+              sources.add(VideoSource(
+                url: playerUrl,
+                title: nameText,
+                quality: 'Auto',
+                sourceName: name,
+                isWebView: true,
+                headers: _headers,
+              ));
+            }
+          }
+        }
 
-        return [
-          VideoSource(
-            url: targetUrl,
-            title: result.title,
-            quality: 'Auto',
-            sourceName: name,
-            isWebView: true,
-            headers: _headers,
-          )
-        ];
+        // Jeśli nie znaleźliśmy konkretnych przycisków, ale strona ma player,
+        // dodajemy główny URL jako jedno źródło (fall-back)
+        if (sources.isEmpty) {
+          bool hasPlayer = document.querySelector('.players') != null || 
+                           document.querySelector('img[src*="kliknij_aby_obejrzec"]') != null ||
+                           document.querySelector('.buttonprch') != null ||
+                           document.querySelector('.warning_ch') != null ||
+                           document.body?.text.contains('wybierz odtwarzacz') == true;
+
+          if (hasPlayer) {
+            sources.add(VideoSource(
+              url: targetUrl,
+              title: 'Domyślny Player',
+              quality: 'Auto',
+              sourceName: name,
+              isWebView: true,
+              headers: _headers,
+            ));
+          }
+        }
+
+        return sources;
       }
     } catch (e) {
       print('Ekino getSources error: $e');

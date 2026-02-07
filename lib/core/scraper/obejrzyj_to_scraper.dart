@@ -107,13 +107,21 @@ class ObejrzyjToScraper extends BaseScraper {
     if (watchData == null) return [];
 
     final mainVideo = watchData['video'];
-    if (mainVideo != null) sources.add(_mapJsonToSource(mainVideo));
+    if (mainVideo != null) {
+      final source = _mapJsonToSource(mainVideo);
+      if (!source.title.toLowerCase().contains('ultrastream')) {
+        sources.add(source);
+      }
+    }
 
     final alternatives = watchData['alternative_videos'] as List?;
     if (alternatives != null) {
       for (var v in alternatives) {
         if (v['id']?.toString() != mainVideo?['id']?.toString()) {
-          sources.add(_mapJsonToSource(v));
+          final source = _mapJsonToSource(v);
+          if (!source.title.toLowerCase().contains('ultrastream')) {
+            sources.add(source);
+          }
         }
       }
     }
