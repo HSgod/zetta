@@ -37,21 +37,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   bool _isLoading = false;
 
   Future<void> _playMedia({int? season, int? episode}) async {
-    final settings = ref.read(scraperSettingsProvider);
-    final hasActiveScraper = settings.enabledScrapers.values.any((v) => v);
-
-    if (!hasActiveScraper) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Musisz włączyć co najmniej jedno źródło w ustawieniach.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
       final scraper = ref.read(scraperServiceProvider);
@@ -67,9 +52,21 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         _showSourcePicker(sources, savedSource: saved);
       } else {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nie znaleziono aktywnych źródeł wideo dla tego tytułu.')),
-          );
+          final settings = ref.read(scraperSettingsProvider);
+          final hasActiveScraper = settings.enabledScrapers.values.any((v) => v);
+          
+          if (!hasActiveScraper) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Musisz włączyć co najmniej jedno źródło w ustawieniach.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nie znaleziono aktywnych źródeł wideo dla tego tytułu.')),
+            );
+          }
         }
       }
     } catch (e) {
