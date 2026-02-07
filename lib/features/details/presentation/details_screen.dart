@@ -94,90 +94,92 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   void _showSourcePicker(List<VideoSource> sources, {SavedSource? savedSource}) {
-    final List<VideoSource> sortedSources = List.from(sources);
-    if (savedSource != null && savedSource.pageUrl != null) {
-      final savedIdx = sortedSources.indexWhere((s) => s.url == savedSource.pageUrl);
-      if (savedIdx != -1) {
-        final saved = sortedSources.removeAt(savedIdx);
-        sortedSources.insert(0, saved);
-      }
+    final Map<String, List<VideoSource>> groupedSources = {};
+    for (var source in sources) {
+      groupedSources.putIfAbsent(source.sourceName, () => []).add(source);
     }
 
-    final isWide = MediaQuery.of(context).size.width > 900;
+    final scraperNames = groupedSources.keys.toList();
+    String? selectedScraper;
 
-    if (isWide) {
-      showDialog(
-        context: context,
-        builder: (context) => Center(
-          child: Container(
-            width: 500,
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
-            child: Material(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(28),
-              clipBehavior: Clip.antiAlias,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          final isWide = MediaQuery.of(context).size.width > 900;
+          final title = selectedScraper == null ? 'Wybierz źródło' : selectedScraper!;
+          final items = selectedScraper == null 
+              ? scraperNames 
+              : groupedSources[selectedScraper]!;
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                    child: Text(
-                      'Wybierz źródło wideo',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                  Container(
+                    width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
                   ),
-                  const Divider(height: 1),
+                  Row(
+                    children: [
+                      if (selectedScraper != null)
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () => setState(() => selectedScraper = null),
+                        ),
+                      Expanded(
+                        child: Text(
+                          title, 
+                          textAlign: selectedScraper == null ? TextAlign.center : TextAlign.start,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      if (selectedScraper != null) const SizedBox(width: 48),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Flexible(
                     child: ListView.separated(
                       shrinkWrap: true,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: sortedSources.length,
+                      itemCount: items.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
-                      itemBuilder: (context, index) => _buildSourceTile(context, sortedSources[index], savedSource, isTV: true),
+                      itemBuilder: (context, index) {
+                        if (selectedScraper == null) {
+                          final name = items[index] as String;
+                          final count = groupedSources[name]!.length;
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              child: Icon(name.toLowerCase().contains('ekino') ? Icons.movie_filter : Icons.language),
+                            ),
+                            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('Dostępnych źródeł: $count'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => setState(() => selectedScraper = name),
+                          );
+                        } else {
+                          final source = items[index] as VideoSource;
+                          return _buildSourceTile(context, source, savedSource, isTV: isWide, showSourceName: false);
+                        }
+                      },
                     ),
                   ),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
-          ),
-        ),
-      );
-    } else {
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-        builder: (context) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
-                ),
-                Text('Wybierz źródło wideo', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: sortedSources.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
-                    itemBuilder: (context, index) => _buildSourceTile(context, sortedSources[index], savedSource, isTV: false),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+          );
+        },
+      ),
+    );
   }
 
-  Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource, {required bool isTV}) {
+  Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource, {required bool isTV, bool showSourceName = true}) {
     final isSuggested = savedSource != null && source.url == savedSource.pageUrl;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -210,17 +212,19 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             const Text('ŹRÓDŁO DO KONTYNUOWANIA OGLĄDANIA', style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold)),
           Row(
             children: [
-              Text(
-                source.sourceName,
-                style: TextStyle(
-                  color: isSuggested ? Colors.green : colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: isTV ? 12 : 13,
+              if (showSourceName) ...[
+                Text(
+                  source.sourceName,
+                  style: TextStyle(
+                    color: isSuggested ? Colors.green : colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: isTV ? 12 : 13,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              const Text('•', style: TextStyle(fontSize: 10)),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+                const Text('•', style: TextStyle(fontSize: 10)),
+                const SizedBox(width: 8),
+              ],
               Text('Jakość: ${source.quality}', style: TextStyle(fontSize: isTV ? 12 : 13)),
             ],
           ),
