@@ -50,7 +50,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   void _startTimeoutTimer() {
     _timeoutTimer?.cancel();
-    _timeoutTimer = Timer(const Duration(seconds: 30), () {
+    _timeoutTimer = Timer(const Duration(seconds: 50), () {
       if (mounted && _isLoading && !_isExiting) {
         setState(() {
           _isLoading = false;
@@ -115,30 +115,35 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       ref.read(historyProvider.notifier).addToHistory(widget.args.item);
       ref.read(continueWatchingProvider.notifier).addToContinue(widget.args.item);
       
+      String cleanUrl = widget.args.initialUrl ?? streamUrl;
+      if (cleanUrl.contains('ekino-tv.pl')) {
+        cleanUrl = cleanUrl.split('?').first;
+      }
+
       ref.read(sourceHistoryProvider.notifier).saveSource(
         widget.args.item.id,
         SavedSource(
-          url: streamUrl,
-          pageUrl: widget.args.initialUrl,
+          url: streamUrl, 
+          pageUrl: cleanUrl,
           headers: widget.args.headers,
           automationScript: widget.args.automationScript,
         ),
       );
     });
 
-    final desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    const mobileUA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
+    const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
     
-    final Map<String, String> headers = {
-      'User-Agent': desktopUA,
-      'Referer': widget.args.initialUrl ?? 'https://obejrzyj.to/',
-    };
+    String referer = widget.args.initialUrl ?? 'https://ekino-tv.pl/';
+    String origin = 'https://ekino-tv.pl';
+    String finalUA = mobileUA;
 
-    if (widget.args.initialUrl != null) {
-      try {
-        final uri = Uri.parse(widget.args.initialUrl!);
-        headers['Origin'] = '${uri.scheme}://${uri.host}';
-      } catch (_) {}
-    }
+    final Map<String, String> headers = {
+      'User-Agent': finalUA,
+      'Accept': '*/*',
+      'Referer': referer,
+      'Origin': origin,
+    };
 
     if (widget.args.headers != null) {
       headers.addAll(widget.args.headers!);
@@ -147,7 +152,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     player.stop().then((_) {
       if (_isExiting) return;
       
-      // Przygotuj listę napisów zewnętrznych
       final List<SubtitleTrack> externalSubtitles = [];
       if (widget.args.subtitles != null) {
         for (var sub in widget.args.subtitles!) {
@@ -159,7 +163,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         Media(streamUrl, httpHeaders: headers),
         play: true,
       ).then((_) {
-        // Dodaj napisy po otwarciu mediów
         if (externalSubtitles.isNotEmpty) {
           for (var track in externalSubtitles) {
             player.setSubtitleTrack(track);
@@ -184,12 +187,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _saveProgress() async {
-    if (_isLoading || _hasError || _isExiting) return;
+    if (_isLoading || _hasError) return; // Usunięto _isExiting, bo chcemy zapisać przy wyjściu
     final prefs = await SharedPreferences.getInstance();
     final key = "progress_${widget.args.item.id}";
     final position = player.state.position.inSeconds;
     final duration = player.state.duration.inSeconds;
 
+    debugPrint('Zetta Player: Zapisuję postęp dla $key -> $position sek (duration: $duration)');
     await prefs.setInt(key, position);
 
     if (duration > 0 && position > duration * 0.9) {
@@ -202,19 +206,24 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final key = "progress_${widget.args.item.id}";
     final savedSeconds = prefs.getInt(key);
     
+    debugPrint('Zetta Player: Wczytuję postęp dla $key -> $savedSeconds sek');
+
     if (savedSeconds != null && savedSeconds > 10) {
+      debugPrint('Zetta Player: Czekam na duration, aby wznowić od $savedSeconds sek');
       StreamSubscription? sub;
-      sub = player.stream.buffer.listen((buffer) {
-        if (buffer.inSeconds > 0) {
+      sub = player.stream.duration.listen((duration) {
+        if (duration.inSeconds > 0) {
+          debugPrint('Zetta Player: Duration znane (${duration.inSeconds}s), wykonuję seek do $savedSeconds');
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted && !_isExiting) {
               player.seek(Duration(seconds: savedSeconds));
+              debugPrint('Zetta Player: Seek wysłany');
             }
           });
           sub?.cancel();
         }
       });
-      Future.delayed(const Duration(seconds: 15), () => sub?.cancel());
+      Future.delayed(const Duration(seconds: 20), () => sub?.cancel());
     }
   }
 
@@ -261,6 +270,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Future<void> _handleBack() async {
     if (_isExiting) return;
     setState(() => _isExiting = true);
+    
+    await _saveProgress(); // Zapisujemy postęp przed wyjściem
     
     _hideControlsTimer?.cancel();
     _progressSaveTimer?.cancel();
@@ -338,7 +349,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                   return ListTile(
                     leading: Icon(Icons.subtitles, color: isSelected ? Colors.redAccent : Colors.white70),
                     title: Text(
-                      track.title ?? track.language ?? (track.id == 'no' ? 'Wyłączone' : 'Ścieżka ${index}'),
+                      track.title ?? track.language ?? (track.id == 'no' ? 'Wy\u0142\u0105czone' : 'Ście\u017cka ${index}'),
                       style: TextStyle(color: isSelected ? Colors.redAccent : Colors.white, fontWeight: isSelected ? FontWeight.bold : null),
                     ),
                     trailing: isSelected ? const Icon(Icons.check, color: Colors.redAccent) : null,
@@ -392,7 +403,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         body: Stack(
           alignment: Alignment.center,
           children: [
-            if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_hasError && !_isExiting)
+            if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_isExiting)
               Positioned.fill(
                 child: VideoSniffer(
                   initialUrl: widget.args.initialUrl!,
@@ -441,12 +452,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                         const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
                         const SizedBox(height: 24),
                         const Text(
-                          "PROBLEM ZE ŹRÓDŁEM",
+                          "PROBLEM ZE \u0179R\u00d3D\u0141EM",
                           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          "Nie udało się załadować wideo w wyznaczonym czasie.\nSpróbuj użyć innego źródła.",
+                          "Nie uda\u0142o si\u0119 za\u0142adować wideo.\nSpr\u00f3buj u\u017cyć innego \u017ar\u00f3d\u0142a.",
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white70, fontSize: 13),
                         ),
@@ -454,36 +465,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                         OutlinedButton.icon(
                           onPressed: _handleBack,
                           icon: const Icon(Icons.arrow_back),
-                          label: const Text("WRÓĆ DO WYBORU"),
+                          label: const Text("WR\u00d3\u0106 DO WYBORU"),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white30),
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-            if (_isLoading && !_showWebViewDebug && !_isExiting)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 40, height: 40,
-                          child: CircularProgressIndicator(color: Colors.redAccent, strokeWidth: 3),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "ŁĄCZENIE Z SERWEREM",
-                          style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
                         ),
                       ],
                     ),
@@ -699,104 +687,84 @@ class VideoSniffer extends StatefulWidget {
 class _VideoSnifferState extends State<VideoSniffer> {
   @override
   Widget build(BuildContext context) {
-    final desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
-    
+    const mobileUA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
+    const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+    // Mixdrop / VOE dzia\u0142aj\u0105 lepiej na Desktop UA
+    String snifferUA = mobileUA;
+    if (widget.initialUrl.contains('mixdrop') || widget.initialUrl.contains('voe')) {
+      snifferUA = desktopUA;
+    }
+
     final initialOrigin = widget.args.initialUrl != null ? Uri.parse(widget.args.initialUrl!).origin : 'https://ekino-tv.pl';
     final headers = widget.args.headers ?? {
-      'User-Agent': desktopUA,
+      'User-Agent': snifferUA,
       'Referer': widget.args.initialUrl ?? 'https://ekino-tv.pl/',
       'Origin': initialOrigin,
     };
 
     final defaultScript = r"""
             (function() {
-              var attempts = 0;
-              var maxAttempts = 100;
-              var ultraClicksDone = false;
+              Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
               
+              var attempts = 0;
+              var maxAttempts = 150;
+              
+              function deepClick(el) {
+                if (!el) return;
+                ['mousedown', 'mouseup', 'click'].forEach(evt => {
+                  el.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, view: window }));
+                });
+              }
+
               function attemptAutoClick() {
                 if (attempts++ > maxAttempts) return;
-                const bodyText = document.body.innerText;
-                if (bodyText.includes('Verifying you are human') || 
-                    bodyText.includes('Checking your browser') || 
-                    document.querySelector('#cf-challenge')) return;
-
+                
                 var currentUrl = window.location.href;
-                var isUltra = currentUrl.indexOf('ultrastream') !== -1 || currentUrl.indexOf('streamly') !== -1;
 
-                if (isUltra || attempts % 5 === 0) {
-                  document.querySelectorAll('div').forEach(el => {
-                    const z = parseInt(window.getComputedStyle(el).zIndex);
-                    if (z > 100 && !el.querySelector('video')) {
-                      el.remove();
+                // 1. Przyciski startowe (Ekino buttonprch, Obejrzyj.to itp)
+                document.querySelectorAll('a, button, .btn-play, .btn-primary, .warning_ch a, .buttonprch').forEach(el => {
+                  const txt = el.textContent.toLowerCase();
+                  if (txt.includes('odtwarzania') || txt.includes('oglądaj') || txt.includes('kliknij') || el.classList.contains('buttonprch')) {
+                    if (!el.dataset.zettaClicked) {
+                      el.dataset.zettaClicked = "true";
+                      deepClick(el);
+                      
+                      // Wymuś nawigację dla przycisków typu buttonprch
+                      if (el.classList.contains('buttonprch') && el.href && el.href !== '#' && !el.href.startsWith('javascript')) {
+                        setTimeout(() => {
+                           if (window.location.href === currentUrl) window.location.href = el.href;
+                        }, 800);
+                      }
                     }
-                  });
+                  }
+                });
+
+                // 2. Playery (standardowe selektory)
+                var playSelectors = [
+                  '.play-icon', '.play-btn', '.vjs-big-play-button', 
+                  'button[aria-label="Play"]', '#play-btn', '.jw-display-icon-container'
+                ];
+                
+                for (var sel of playSelectors) {
+                  var btn = document.querySelector(sel);
+                  if (btn && btn.offsetParent !== null && !btn.dataset.zettaClicked) {
+                    btn.dataset.zettaClicked = "true";
+                    deepClick(btn);
+                  }
                 }
 
                 document.querySelectorAll('video').forEach(v => { 
-                  v.muted = true; 
                   if (v.paused) v.play().catch(() => {});
                 });
-                
-                if (currentUrl.indexOf('ekino-tv.pl') !== -1) {
-                  var startImg = document.querySelector('img[src*="kliknij_aby_obejrzec"]');
-                  if (startImg && !startImg.dataset.automationClicked) {
-                    startImg.dataset.automationClicked = "true";
-                    startImg.click();
-                    if (startImg.parentElement && startImg.parentElement.tagName === 'A') startImg.parentElement.click();
-                    return;
-                  }
 
-                  var playerLinks = document.querySelectorAll('.players a, a.buttonprch, .warning_ch a, a[href*="play.ekino.link"]');
-                  for (var i = 0; i < playerLinks.length; i++) {
-                    if (!playerLinks[i].dataset.automationClicked) {
-                      playerLinks[i].dataset.automationClicked = "true";
-                      playerLinks[i].setAttribute('target', '_self');
-                      playerLinks[i].click();
-                      window.location.href = playerLinks[i].href;
-                      return;
-                    }
-                  }
-                } 
-                
-                var playSelectors = [
-                  '.player-button',
-                  '.vjs-big-play-button', 
-                  '.play-button', 
-                  'button[aria-label="Play"]', 
-                  '.jw-display-icon-container', 
-                  '#play-btn', 
-                  '.play_icon',
-                  '#play',
-                  '.click-to-play',
-                  '.vjs-poster',
-                  '#player_control_play'
-                ];
-                
-                for (var i = 0; i < playSelectors.length; i++) {
-                  var btn = document.querySelector(playSelectors[i]);
-                  if (btn && btn.offsetParent !== null) {
-                    if (isUltra && !ultraClicksDone) {
-                      btn.click();
-                      btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
-                      btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
-                      btn.dispatchEvent(new MouseEvent('click', {bubbles: true}));
-                      ultraClicksDone = true;
-                      return;
-                    } else if (!isUltra && !btn.dataset.automationClicked) {
-                      btn.dataset.automationClicked = "true";
-                      btn.click();
-                      return;
-                    }
-                  }
-                }
+                // 3. Kliknięcie w środek ekranu jako ostateczność
                 if (attempts % 15 === 0) {
-                  const el = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
-                  if (el) el.click();
+                   const centerEl = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+                   if (centerEl) deepClick(centerEl);
                 }
               }
-              window.open = function() { return { focus: function() {} }; };
-              setInterval(attemptAutoClick, 1000);
+              setInterval(attemptAutoClick, 1500);
             })();
     """;
 
@@ -806,10 +774,15 @@ class _VideoSnifferState extends State<VideoSniffer> {
         headers: headers,
       ),
       onCreateWindow: (controller, action) async {
-        if (action.request.url != null) {
-          controller.loadUrl(urlRequest: action.request);
+        return false;
+      },
+      shouldOverrideUrlLoading: (controller, action) async {
+        var url = action.request.url?.toString() ?? "";
+        
+        if (url.contains('adsterra') || url.contains('traff') || url.contains('onclick') || url.contains('ylx-7')) {
+          return NavigationActionPolicy.CANCEL;
         }
-        return true;
+        return NavigationActionPolicy.ALLOW;
       },
       initialUserScripts: UnmodifiableListView<UserScript>([
         UserScript(
@@ -820,31 +793,30 @@ class _VideoSnifferState extends State<VideoSniffer> {
       ]),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
+        javaScriptCanOpenWindowsAutomatically: true, 
         useShouldInterceptRequest: false, 
         useOnLoadResource: true, 
-        preferredContentMode: UserPreferredContentMode.DESKTOP,
+        preferredContentMode: UserPreferredContentMode.MOBILE, // Powr\u00f3t do MOBILE dla Player
         mediaPlaybackRequiresUserGesture: false,
         domStorageEnabled: true,
         databaseEnabled: true,
-        userAgent: desktopUA,
+        userAgent: snifferUA,
         mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-        allowFileAccessFromFileURLs: true,
-        allowUniversalAccessFromFileURLs: true,
       ),
       onReceivedServerTrustAuthRequest: (controller, challenge) async {
         return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
       },
       onLoadResource: (controller, resource) {
         final reqUrl = resource.url.toString();
-        if (reqUrl.contains('tracker') || reqUrl.contains('analytics') || reqUrl.contains('collect')) return;
-        if (reqUrl.contains('.m3u8') || reqUrl.contains('.mp4') || reqUrl.contains('/hls/')) {
-          if (reqUrl.contains('google.com') || reqUrl.contains('facebook.com') || reqUrl.contains('doubleclick')) return;
+        bool isStream = reqUrl.contains('.m3u8') || reqUrl.contains('.mp4') || 
+                        reqUrl.contains('/hls/') || reqUrl.contains('mxcontent.net') ||
+                        reqUrl.contains('mxdcontent.net') || reqUrl.contains('playlist.m3u8');
+
+        if (isStream) {
+          if (reqUrl.contains('google.com') || reqUrl.contains('doubleclick')) return;
+          debugPrint('Zetta Sniffer: Z\u0142apano stream -> $reqUrl');
           widget.onStreamCaught(reqUrl);
-          Future.delayed(const Duration(seconds: 30), () {
-            if (mounted) {
-              controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
-            }
-          });
+          controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
         }
       },
     );

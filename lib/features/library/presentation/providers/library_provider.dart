@@ -74,7 +74,6 @@ class HistoryNotifier extends Notifier<List<MediaItem>> {
   
   void addToHistory(MediaItem item) {
     final prefs = ref.read(sharedPreferencesProvider);
-    // Usuwamy duplikat (jeśli istnieje) i dodajemy na początek
     final newList = [item, ...state.where((e) => e.id != item.id)].take(20).toList();
     state = newList;
 
@@ -123,7 +122,6 @@ class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
     final jsonList = state.map((e) => json.encode(e.toMap())).toList();
     prefs.setStringList(_key, jsonList);
 
-    // Całkowite czyszczenie śladów po tym seansie
     prefs.remove('progress_$id');
     prefs.remove('source_$id');
   }
@@ -131,7 +129,6 @@ class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
 
 final continueWatchingProvider = NotifierProvider<ContinueWatchingNotifier, List<MediaItem>>(ContinueWatchingNotifier.new);
 
-// Klasa do zapisu danych źródła wideo
 class SavedSource {
   final String url;
   final String? pageUrl;
@@ -155,21 +152,36 @@ class SavedSource {
   );
 }
 
-class SourceHistoryNotifier extends Notifier<void> {
+// KLUCZOWA POPRAWKA: Provider musi być reaktywny (Map), aby DetailsScreen wiedzia\u0142 o zmianie
+class SourceHistoryNotifier extends Notifier<Map<String, SavedSource>> {
   @override
-  void build() {}
+  Map<String, SavedSource> build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final Map<String, SavedSource> results = {};
+    
+    // Wczytujemy wszystkie zapisane źr\u00f3d\u0142a z SharedPreferences
+    for (String key in prefs.getKeys()) {
+      if (key.startsWith('source_')) {
+        final id = key.replaceFirst('source_', '');
+        final data = prefs.getString(key);
+        if (data != null) {
+          results[id] = SavedSource.fromMap(json.decode(data));
+        }
+      }
+    }
+    return results;
+  }
 
   void saveSource(String mediaId, SavedSource source) {
     final prefs = ref.read(sharedPreferencesProvider);
     prefs.setString('source_$mediaId', json.encode(source.toMap()));
+    // Aktualizujemy stan, co wymusi przebudowanie UI
+    state = {...state, mediaId: source};
   }
 
   SavedSource? getSource(String mediaId) {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final data = prefs.getString('source_$mediaId');
-    if (data == null) return null;
-    return SavedSource.fromMap(json.decode(data));
+    return state[mediaId];
   }
 }
 
-final sourceHistoryProvider = NotifierProvider<SourceHistoryNotifier, void>(SourceHistoryNotifier.new);
+final sourceHistoryProvider = NotifierProvider<SourceHistoryNotifier, Map<String, SavedSource>>(SourceHistoryNotifier.new);

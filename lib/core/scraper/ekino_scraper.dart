@@ -1,212 +1,139 @@
+import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
-import 'base_scraper.dart';
-
 import '../../features/home/domain/media_item.dart';
+import 'base_scraper.dart';
 
 class EkinoScraper extends BaseScraper {
   @override
   String get name => 'Ekino-TV';
 
   final String _baseUrl = 'https://ekino-tv.pl';
-
-  Map<String, String> get _headers => {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  
+  final Map<String, String> _headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
     'Referer': 'https://ekino-tv.pl/',
   };
 
   @override
   Future<List<SearchResult>> search(String title, MediaType type) async {
-    final searchUrl = '$_baseUrl/search/qf/?q=${Uri.encodeComponent(title)}';
+    final cleanQuery = Uri.encodeComponent(title);
+    final searchUrl = '$_baseUrl/search/qf/?q=$cleanQuery';
+    
     try {
       final response = await http.get(Uri.parse(searchUrl), headers: _headers);
-      if (response.statusCode == 200) {
-        var document = parse(response.body);
-        var items = document.querySelectorAll('.movies-list-item, .movie-item, .item-list');
-        List<SearchResult> results = [];
-        for (var element in items) {
-          var link = element.querySelector('a');
-          var titleElement = element.querySelector('.title, h2, .name, .movie-title');
-          var href = link?.attributes['href'];
-          if (href != null) {
-            // Filtrowanie po typie
-            final isMovieLink = href.contains('/movie/') || href.contains('/film/');
-            final isSerieLink = href.contains('/serie/') || href.contains('/tv-show/');
-            
-            if (type == MediaType.movie && !isMovieLink && isSerieLink) continue;
-            if (type == MediaType.series && !isSerieLink && isMovieLink) continue;
+      if (response.statusCode != 200) return [];
 
-            if (!href.startsWith('http')) href = '$_baseUrl$href';
-            results.add(SearchResult(
-              title: titleElement?.text.trim() ?? 'Film Ekino',
-              url: href,
-              sourceName: name,
-            ));
-          }
+      final document = parse(response.body);
+      final results = <SearchResult>[];
+
+      final movieElements = document.querySelectorAll('.movies-list-item, .list-item, .movie-item');
+      
+      for (var element in movieElements) {
+        final titleElement = element.querySelector('.title a, .name a, h2 a');
+        var url = titleElement?.attributes['href'];
+        final displayTitle = titleElement?.text.trim();
+
+        if (displayTitle != null && url != null) {
+          if (!url.startsWith('http')) url = '$_baseUrl$url';
+          results.add(SearchResult(
+            title: displayTitle,
+            url: url,
+            sourceName: name,
+          ));
         }
-        if (results.isEmpty && document.body?.text.contains('Brak wyników') == false) {
-          var allLinks = document.querySelectorAll('a[href*="/movie/show/"], a[href*="/serie/show/"]');
-          for (var link in allLinks) {
-            var href = link.attributes['href']!;
-            if (!href.startsWith('http')) href = '$_baseUrl$href';
-            var title = link.text.trim();
-            if (title.length > 2) {
-              results.add(SearchResult(
-                title: title,
-                url: href,
-                sourceName: name,
-              ));
-            }
-          }
-        }
-        return results;
       }
-    } catch (e) { /* error */ }
-    return [];
+
+      return results;
+    } catch (e) {
+      return [];
+    }
   }
 
   @override
   Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode}) async {
-    String targetUrl = result.url;
+    String originalUrl = result.url;
+    String fetchUrl = originalUrl;
+    
+    // Dla seriali budujemy link do konkretnego odcinka
+    if (season != null && episode != null) {
+      final slug = originalUrl.split('/show/').last.split('/').first;
+      fetchUrl = '$_baseUrl/serie/show/$slug/sezon-$season/odcinek-$episode';
+    }
 
     try {
-      if (season != null && episode != null && result.url.contains('/serie/show/')) {
-        final slug = result.url.split('/show/').last.replaceAll('/', '');
-        targetUrl = '$_baseUrl/serie/watch/$slug+season[$season]+episode[$episode]+';
+      debugPrint('Ekino Scraper: Analiza strony -> $fetchUrl');
+      final response = await http.get(Uri.parse(fetchUrl), headers: _headers);
+      if (response.statusCode != 200) return [];
+
+      final body = response.body;
+      final document = parse(body);
+      final sources = <VideoSource>[];
+
+      // 1. Priorytet: Szukamy atrybutów data-id i data-name w elementach listy
+      final playerElements = document.querySelectorAll('.players li, .player-item, [data-id]');
+      for (var el in playerElements) {
+        final id = el.attributes['data-id'];
+        final nameAttr = el.attributes['data-name'];
+        var sName = el.text.trim().split('\n').first.trim();
+
+        if (id != null && id.length > 5) {
+          final serverName = (nameAttr ?? sName).toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+          if (serverName.contains('mix') || serverName.contains('upzone') || serverName.contains('voe')) continue;
+
+          final url = '$_baseUrl/watch/f/$serverName/$id';
+          if (!sources.any((s) => s.url == url)) {
+            sources.add(VideoSource(
+              url: url,
+              title: sName.toUpperCase(),
+              quality: 'HD',
+              sourceName: name,
+              isWebView: true,
+            ));
+          }
+        }
       }
 
-      final response = await http.get(Uri.parse(targetUrl), headers: _headers);
-      if (response.statusCode == 200) {
-        var document = parse(response.body);
-        List<VideoSource> sources = [];
-
-        var playerButtons = document.querySelectorAll('.players li, .player-list li, .player-item');
+      // 2. Szukanie bezpośrednio w kodzie frazy ShowPlayer
+      final showPlayerRegex = RegExp("ShowPlayer\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*,\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)", caseSensitive: false);
+      final spMatches = showPlayerRegex.allMatches(body);
+      for (var m in spMatches) {
+        final sName = m.group(1)!;
+        final id = m.group(2)!;
         
-        if (playerButtons.isNotEmpty) {
-          for (int i = 0; i < playerButtons.length; i++) {
-            final btn = playerButtons[i];
-            final nameText = btn.text.trim();
-            if (nameText.isEmpty || nameText.toLowerCase().contains('bez limitów')) continue;
-
-            final serverId = nameText.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-            final uniqueUrl = targetUrl.contains('#') 
-                ? targetUrl.split('#').first + '#$serverId-$i' 
-                : '$targetUrl#$serverId-$i';
-
-            sources.add(VideoSource(
-              url: uniqueUrl,
-              title: nameText,
-              quality: 'Auto',
-              sourceName: name,
-              isWebView: true,
-              headers: {
-                ..._headers,
-                'Referer': 'https://ekino-tv.pl/',
-              },
-              automationScript: '''
-                (function() {
-                  var attempts = 0;
-                  var maxAttempts = 100;
-                  
-                  function triggerClick(el) {
-                    if (!el) return;
-                    console.log('Ekino Automation: Clicking', el);
-                    el.dataset.autoClicked = "true";
-                    const events = ['mousedown', 'mouseup', 'click'];
-                    events.forEach(evt => {
-                      el.dispatchEvent(new MouseEvent(evt, {bubbles: true, cancelable: true, view: window}));
-                    });
-                    if (el.click) el.click();
-                  }
-
-                  function run() {
-                    var currentUrl = window.location.href;
-                    
-                    if (currentUrl.includes('/player/') || currentUrl.includes('vshare.io') || currentUrl.includes('upstream')) {
-                      console.log('Final player reached, stopping automation.');
-                      return;
-                    }
-
-                    if (attempts++ > maxAttempts) return;
-                    
-                    document.querySelectorAll('div').forEach(el => {
-                      if (parseInt(window.getComputedStyle(el).zIndex) > 100) {
-                        el.remove();
-                      }
-                    });
-
-                    if (currentUrl.includes('/movie/show/') || currentUrl.includes('/serie/show/') || currentUrl.includes('/serie/watch/')) {
-                      var buttons = document.querySelectorAll('.players li, .player-list li');
-                      if (buttons.length > $i) {
-                        var link = buttons[$i].querySelector('a') || buttons[$i];
-                        if (!link.dataset.autoClicked) {
-                          console.log('Step 1: Selecting server');
-                          triggerClick(link);
-                          return;
-                        }
-                      }
-                    }
-
-                    var tabLink = document.querySelector('.tabpanel a, .tab-pane.active a, .warning_ch a');
-                    if (tabLink && tabLink.offsetWidth > 0 && !tabLink.dataset.autoClicked) {
-                      console.log('Step 2: Clicking watch link');
-                      triggerClick(tabLink);
-                      return;
-                    }
-
-                    var prchBtn = document.querySelector('.buttonprch, a.buttonprch');
-                    if (prchBtn && prchBtn.offsetWidth > 0 && !prchBtn.dataset.autoClicked) {
-                      console.log('Step 3: Clicking buttonprch');
-                      var targetHref = prchBtn.href;
-                      triggerClick(prchBtn);
-                      
-                      if (targetHref && targetHref !== '#' && !targetHref.startsWith('javascript')) {
-                        setTimeout(function() {
-                          if (window.location.href === currentUrl) {
-                            console.log('Forcing navigation to:', targetHref);
-                            window.location.href = targetHref;
-                          }
-                        }, 1000);
-                      }
-                      return;
-                    }
-
-                    setTimeout(run, 1500);
-                  }
-                  
-                  window.open = function() { return null; };
-                  setTimeout(run, 2000);
-                })();
-              ''',
-            ));
-          }
+        final lowerName = sName.toLowerCase();
+        if (lowerName.contains('mix') || lowerName.contains('upzone') || lowerName.contains('voe')) continue;
+        
+        final url = '$_baseUrl/watch/f/$lowerName/$id';
+        if (!sources.any((s) => s.url == url)) {
+          sources.add(VideoSource(
+            url: url, 
+            title: sName.toUpperCase(), 
+            quality: 'HD', 
+            sourceName: name, 
+            isWebView: true,
+          ));
         }
-
-        if (sources.isEmpty) {
-          bool hasPlayer = document.querySelector('.players') != null || 
-                           document.querySelector('img[src*="kliknij_aby_obejrzec"]') != null ||
-                           document.querySelector('.buttonprch') != null ||
-                           document.querySelector('.warning_ch') != null;
-
-          if (hasPlayer) {
-            sources.add(VideoSource(
-              url: '$targetUrl#default',
-              title: 'Domyślny Player',
-              quality: 'Auto',
-              sourceName: name,
-              isWebView: true,
-              headers: _headers,
-            ));
-          }
-        }
-
-        return sources;
       }
+
+      // 3. Fallback: Jeśli nic nie znaleźliśmy, spróbujmy linku bypass dla sniffera
+      if (sources.isEmpty) {
+        String bypassUrl = fetchUrl.replaceFirst('/show/', '/watch/');
+        sources.add(VideoSource(
+          url: bypassUrl,
+          title: 'DOMYŚLNY PLAYER',
+          quality: 'Auto',
+          sourceName: name,
+          isWebView: true,
+        ));
+      }
+
+      debugPrint('Ekino Scraper: Wynik końcowy -> ${sources.length} źródeł');
+      return sources;
     } catch (e) {
-      print('Ekino getSources error: $e');
+      debugPrint('Ekino Scraper Error: $e');
+      return [];
     }
-    return [];
   }
 }
