@@ -58,7 +58,17 @@ class EkinoScraper extends BaseScraper {
     
     // Dla seriali budujemy link do konkretnego odcinka zgodnie z formatem Ekino
     if (season != null && episode != null) {
-      final slug = originalUrl.split('/show/').last.split('/').first;
+      // Wyciągamy czysty slug - bierzemy część po /show/, ale przed ewentualnym ID lub końcowym /
+      final pathParts = originalUrl.split('/show/').last.split('/');
+      String slug = pathParts.first;
+      
+      // Jeśli slug jest numeryczny (rzadkie, ale możliwe), spróbujmy wziąć drugą część
+      if (RegExp(r'^\d+$').hasMatch(slug) && pathParts.length > 1) {
+        slug = pathParts[1];
+      }
+      
+      if (slug.endsWith('/')) slug = slug.substring(0, slug.length - 1);
+      
       fetchUrl = '$_baseUrl/serie/watch/$slug+season[$season]+episode[$episode]+';
     }
 

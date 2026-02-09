@@ -79,11 +79,29 @@ class ScraperService {
         debugPrint('Zetta Scraper: ${scraper.name} znalaz\u0142 ${searchResults.length} wynik\u00f3w wyszukiwania');
         
         if (searchResults.isNotEmpty) {
-          // Szukamy najlepszego dopasowania
-          final bestMatch = searchResults.firstWhere(
-            (r) => r.title.toLowerCase().contains(query.toLowerCase()) || query.toLowerCase().contains(r.title.toLowerCase()),
-            orElse: () => searchResults.first,
-          );
+          // Normalizacja dla lepszego por\u00f3wnania
+          String normalize(String text) => text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s]'), '').trim();
+          final normalizedQuery = normalize(query);
+
+          // Filtrowanie i szukanie najlepszego dopasowania
+          final matches = searchResults.where((r) {
+            final normalizedResult = normalize(r.title);
+            // Wynik musi zawierać ca\u0142ą frazę lub być identyczny
+            // Zapobiega to braniu "Making of Stranger Things" dla zapytania "Stranger Things"
+            return normalizedResult == normalizedQuery || 
+                   normalizedResult.startsWith('$normalizedQuery ') ||
+                   normalizedResult.endsWith(' $normalizedQuery') ||
+                   normalizedResult.contains(' $normalizedQuery ');
+          }).toList();
+
+          if (matches.isEmpty) {
+            debugPrint('Zetta Scraper: ${scraper.name} - brak wystarczaj\u0105co bliskiego dopasowania dla "$query"');
+            return <VideoSource>[];
+          }
+
+          // Wybieramy wynik najkr\u00f3tszy (zazwyczaj ten najbardziej bazowy)
+          matches.sort((a, b) => a.title.length.compareTo(b.title.length));
+          final bestMatch = matches.first;
 
           debugPrint('Zetta Scraper: ${scraper.name} wybiera wynik: ${bestMatch.title}');
           return await scraper.getSources(bestMatch, season: season, episode: episode);

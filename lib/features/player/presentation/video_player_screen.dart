@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../library/presentation/providers/library_provider.dart';
 import 'player_args.dart';
@@ -67,8 +68,19 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       DeviceOrientation.landscapeLeft, 
       DeviceOrientation.landscapeRight
     ]);
+    WakelockPlus.enable(); // Blokuj wygaszanie ekranu
 
     player = Player();
+    
+    // Opcje dla libmpv omijaj\u0105ce b\u0142\u0119dy handshake SSL na niekt\u00f3rych CDN
+    if (player.platform is NativePlayer) {
+      final native = player.platform as dynamic;
+      native.setProperty('tls-verify', 'no');
+      native.setProperty('http-proxy', ''); 
+      native.setProperty('demuxer-lavf-o', 'protocol_whitelist=[file,rtp,tcp,udp,http,https,tls,tls_aes_128_gcm_sha256,tls_aes_256_gcm_sha384]');
+      native.setProperty('tls-ca-file', ''); // Ignoruj systemowe CA je\u015bli s\u0105 przestarza\u0142e
+    }
+
     controller = VideoController(player);
 
     _subscriptions.add(player.stream.playing.listen((playing) {
@@ -138,15 +150,28 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     String origin = 'https://ekino-tv.pl';
     String finalUA = mobileUA;
 
+    if (streamUrl.contains('r66nv9ed.com') || streamUrl.contains('filemoon') || streamUrl.contains('boosteradx')) {
+      referer = widget.args.initialUrl ?? streamUrl;
+    }
+
     final Map<String, String> headers = {
       'User-Agent': finalUA,
       'Accept': '*/*',
+      'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
       'Referer': referer,
       'Origin': origin,
-      'Sec-Fetch-Mode': 'cors',
-      'Sec-Fetch-Site': 'cross-site',
-      'Sec-Fetch-Dest': 'video',
+      'Connection': 'keep-alive',
     };
+
+    // Dla Obejrzyj.to (Filemoon) usuwamy Origin i Sec-Fetch, bo s\u0105 zbyt rygorystyczne
+    if (streamUrl.contains('r66nv9ed.com') || streamUrl.contains('filemoon') || streamUrl.contains('boosteradx')) {
+      headers.remove('Origin');
+    } else {
+      headers['Sec-Fetch-Mode'] = 'cors';
+      headers['Sec-Fetch-Site'] = 'cross-site';
+      headers['Sec-Fetch-Dest'] = 'video';
+    }
 
     if (widget.args.headers != null) {
       headers.addAll(widget.args.headers!);
@@ -290,6 +315,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    WakelockPlus.disable(); // Przywr\u00f3ć wygaszanie ekranu
     if (!_isExiting) {
       _saveProgress();
       _hideControlsTimer?.cancel();
@@ -408,14 +434,17 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           children: [
             if (widget.args.videoUrl == null && widget.args.initialUrl != null && !_isExiting)
               Positioned.fill(
-                child: VideoSniffer(
-                  initialUrl: widget.args.initialUrl!,
-                  onStreamCaught: _startPlayback,
-                  args: widget.args,
+                child: Offstage(
+                  offstage: !_showWebViewDebug,
+                  child: VideoSniffer(
+                    initialUrl: widget.args.initialUrl!,
+                    onStreamCaught: _startPlayback,
+                    args: widget.args,
+                  ),
                 ),
               ),
 
-            if (!_isLoading && !_hasError && !_isExiting)
+            if (!_hasError && !_isExiting)
               Positioned.fill(
                 child: GestureDetector(
                   onTap: _toggleControls,
@@ -423,13 +452,21 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Video(
-                        controller: controller,
-                        controls: NoVideoControls,
-                        fit: _videoFill,
-                      ),
+                      if (!_isLoading)
+                        Video(
+                          controller: controller,
+                          controls: NoVideoControls,
+                          fit: _videoFill,
+                        ),
                       if (_gestureType != null) _buildGestureOverlay(),
-                      _buildMD3Controls(context, padding),
+                      if (!_isLoading) _buildMD3Controls(context, padding),
+                      if (_isLoading)
+                        Container(
+                          color: Colors.black,
+                          child: const Center(
+                            child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                        ),
                       StreamBuilder<bool>(
                         stream: player.stream.buffering,
                         builder: (context, snapshot) {
@@ -708,6 +745,13 @@ class _VideoSnifferState extends State<VideoSniffer> {
 
     final defaultScript = r"""
             (function() {
+              // Anti-AdBlock Bypass
+              window.google_ad_client = "ca-pub-zetta";
+              window.adsbygoogle = { push: function() {} };
+              window.ga = function() {};
+              window.ads = true;
+              window.canRunAds = true;
+              
               Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
               
               var attempts = 0;

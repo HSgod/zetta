@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
+import '../../../core/scraper/scraper_settings_provider.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/domain/episode.dart';
 import '../../home/data/tmdb_service.dart';
 import '../../library/presentation/providers/library_provider.dart';
 import '../../player/presentation/player_args.dart';
 import '../../player/presentation/video_player_screen.dart';
+import '../../settings/presentation/scraper_selection_screen.dart';
 
 final tmdbServiceProvider = Provider((ref) => TmdbService());
 
@@ -106,6 +108,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget build(BuildContext context) {
     final isFavorite = ref.watch(favoritesProvider).any((i) => i.id == widget.item.id);
     final savedSource = ref.watch(sourceHistoryProvider)[widget.item.id];
+    final settingsAsync = ref.watch(scraperSettingsProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -141,32 +144,27 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   const Text('Dost\u0119pne źr\u00f3d\u0142a', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                   const Divider(color: Colors.white24, height: 32),
                   
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final settings = ref.watch(scraperSettingsProvider);
-                      return settings.when(
-                        data: (config) {
-                          final hasActive = config.enabledScrapers.values.any((v) => v == true);
-                          if (!hasActive) {
-                            return _buildNoScrapersWarning(context);
-                          }
-                          
-                          if (_isLoadingSources) {
-                            return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)));
-                          } else if (_error != null) {
-                            return Center(child: Text('B\u0142\u0105d: $_error', style: const TextStyle(color: Colors.red)));
-                          } else if (_sources != null && _sources!.isNotEmpty) {
-                            return Column(children: _buildGroupedSources(context, savedSource));
-                          } else if (_sources != null && _sources!.isEmpty) {
-                            return const Center(child: Text('Nie znaleziono źr\u00f3de\u0142 dla tego wyboru.', style: TextStyle(color: Colors.white30)));
-                          } else {
-                            return const Center(child: Text('Wybierz odcinek, aby zobaczyć źr\u00f3d\u0142a', style: TextStyle(color: Colors.white30)));
-                          }
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (_, __) => const Text('B\u0142\u0105d ładowania ustawień', style: TextStyle(color: Colors.red)),
-                      );
+                  settingsAsync.when(
+                    data: (config) {
+                      final hasActive = config.enabledScrapers.values.any((v) => v == true);
+                      if (!hasActive) {
+                        return _buildNoScrapersWarning(context);
+                      }
+                      
+                      if (_isLoadingSources) {
+                        return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)));
+                      } else if (_error != null) {
+                        return Center(child: Text('B\u0142\u0105d: $_error', style: const TextStyle(color: Colors.red)));
+                      } else if (_sources != null && _sources!.isNotEmpty) {
+                        return Column(children: _buildGroupedSources(context, savedSource));
+                      } else if (_sources != null && _sources!.isEmpty) {
+                        return const Center(child: Text('Nie znaleziono źr\u00f3de\u0142 dla tego wyboru.', style: TextStyle(color: Colors.white30)));
+                      } else {
+                        return const Center(child: Text('Wybierz odcinek, aby zobaczyć źr\u00f3d\u0142a', style: TextStyle(color: Colors.white30)));
+                      }
                     },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (_, __) => const Text('B\u0142\u0105d ładowania ustawień', style: TextStyle(color: Colors.red)),
                   ),
                   
                   const SizedBox(height: 100),
@@ -207,7 +205,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ScraperSelectionScreen()),
+                MaterialPageRoute(builder: (_) => ScraperSelectionScreen()),
               );
             },
             icon: const Icon(Icons.settings),
