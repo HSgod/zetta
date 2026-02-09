@@ -141,20 +141,82 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   const Text('Dost\u0119pne źr\u00f3d\u0142a', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                   const Divider(color: Colors.white24, height: 32),
                   
-                  if (_isLoadingSources)
-                    const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)))
-                  else if (_error != null)
-                    Center(child: Text('B\u0142\u0105d: $_error', style: const TextStyle(color: Colors.red)))
-                  else if (_sources != null && _sources!.isNotEmpty)
-                    ..._buildGroupedSources(context, savedSource)
-                  else if (_sources != null && _sources!.isEmpty)
-                    const Center(child: Text('Nie znaleziono źr\u00f3de\u0142 dla tego wyboru.', style: TextStyle(color: Colors.white30)))
-                  else
-                    const Center(child: Text('Wybierz odcinek, aby zobaczyć źr\u00f3d\u0142a', style: TextStyle(color: Colors.white30))),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final settings = ref.watch(scraperSettingsProvider);
+                      return settings.when(
+                        data: (config) {
+                          final hasActive = config.enabledScrapers.values.any((v) => v == true);
+                          if (!hasActive) {
+                            return _buildNoScrapersWarning(context);
+                          }
+                          
+                          if (_isLoadingSources) {
+                            return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)));
+                          } else if (_error != null) {
+                            return Center(child: Text('B\u0142\u0105d: $_error', style: const TextStyle(color: Colors.red)));
+                          } else if (_sources != null && _sources!.isNotEmpty) {
+                            return Column(children: _buildGroupedSources(context, savedSource));
+                          } else if (_sources != null && _sources!.isEmpty) {
+                            return const Center(child: Text('Nie znaleziono źr\u00f3de\u0142 dla tego wyboru.', style: TextStyle(color: Colors.white30)));
+                          } else {
+                            return const Center(child: Text('Wybierz odcinek, aby zobaczyć źr\u00f3d\u0142a', style: TextStyle(color: Colors.white30)));
+                          }
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (_, __) => const Text('B\u0142\u0105d ładowania ustawień', style: TextStyle(color: Colors.red)),
+                      );
+                    },
+                  ),
                   
                   const SizedBox(height: 100),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoScrapersWarning(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 48),
+          const SizedBox(height: 16),
+          const Text(
+            'BRAK AKTYWNYCH \u0179R\u00d3DE\u0141',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Aby wyszukiwać filmy i seriale, musisz najpierw włączyć co najmniej jeden scraper w ustawieniach aplikacji.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ScraperSelectionScreen()),
+              );
+            },
+            icon: const Icon(Icons.settings),
+            label: const Text('ID\u0179 DO USTAWIEN'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],

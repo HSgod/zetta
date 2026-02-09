@@ -56,10 +56,10 @@ class EkinoScraper extends BaseScraper {
     String originalUrl = result.url;
     String fetchUrl = originalUrl;
     
-    // Dla seriali budujemy link do konkretnego odcinka
+    // Dla seriali budujemy link do konkretnego odcinka zgodnie z formatem Ekino
     if (season != null && episode != null) {
       final slug = originalUrl.split('/show/').last.split('/').first;
-      fetchUrl = '$_baseUrl/serie/show/$slug/sezon-$season/odcinek-$episode';
+      fetchUrl = '$_baseUrl/serie/watch/$slug+season[$season]+episode[$episode]+';
     }
 
     try {

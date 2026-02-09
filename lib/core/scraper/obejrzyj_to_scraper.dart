@@ -109,7 +109,7 @@ class ObejrzyjToScraper extends BaseScraper {
     final mainVideo = watchData['video'];
     if (mainVideo != null) {
       final source = _mapJsonToSource(mainVideo, 0);
-      if (!source.title.toLowerCase().contains('ultrastream')) {
+      if (source.url.isNotEmpty && !source.title.toLowerCase().contains('ultrastream')) {
         sources.add(source);
       }
     }
@@ -120,7 +120,7 @@ class ObejrzyjToScraper extends BaseScraper {
         final v = alternatives[i];
         if (v['id']?.toString() != mainVideo?['id']?.toString()) {
           final source = _mapJsonToSource(v, i + 1);
-          if (!source.title.toLowerCase().contains('ultrastream')) {
+          if (source.url.isNotEmpty && !source.title.toLowerCase().contains('ultrastream')) {
             sources.add(source);
           }
         }
@@ -197,38 +197,63 @@ class ObejrzyjToScraper extends BaseScraper {
       sourceName: name,
       subtitles: subtitles,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
         'Referer': src,
-        'Origin': src.startsWith('https://filemoon') ? 'https://filemoon.sx' : origin,
+        'Origin': origin,
         'Accept': '*/*',
-        'X-Requested-With': 'com.google.android.webview',
       },
       isWebView: true,
       automationScript: '''
         (function() {
           let attempts = 0;
-          const maxAttempts = 30;
+          const maxAttempts = 100;
+          
+          function deepClick(el) {
+            if (!el) return;
+            ['mousedown', 'mouseup', 'click'].forEach(evt => {
+              el.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, view: window }));
+            });
+          }
+
           function run() {
             if (attempts++ > maxAttempts) return;
-            document.querySelectorAll('video').forEach(v => { v.muted = true; v.volume = 0; });
-            const selectors = ['.vjs-big-play-button', '.play-button', '#play', '#vjs_video_3', '.play_icon', 'button[aria-label="Play"]', '.jw-display-icon-container', '#play-btn'];
-            let clicked = false;
-            selectors.forEach(s => {
-              const el = document.querySelector(s);
-              if (el && el.offsetParent !== null && !el.dataset.clicked) {
-                el.dataset.clicked = "true";
-                el.click();
-                clicked = true;
-              }
+            
+            // Wycisz wszystko co si\u0119 da
+            document.querySelectorAll('video, audio').forEach(v => { 
+              v.muted = true; 
+              v.volume = 0; 
+              if (v.paused) v.play().catch(() => {});
             });
-            if (!clicked && attempts % 5 === 0) {
+
+            // Selektory przycisk\u00f3w play
+            const selectors = [
+              '.vjs-big-play-button', '.play-button', '#play', '.play_icon', 
+              'button[aria-label="Play"]', '.jw-display-icon-container', 
+              '#play-btn', '.buttonprch', '.warning_ch a'
+            ];
+
+            selectors.forEach(s => {
+              document.querySelectorAll(s).forEach(el => {
+                if (el && el.offsetParent !== null && !el.dataset.zettaClicked) {
+                  el.dataset.zettaClicked = "true";
+                  deepClick(el);
+                }
+              });
+            });
+
+            // Klikni\u0119cie w \u015brodek ekranu (cz\u0119sto wymagane przez hosty)
+            if (attempts % 10 === 0) {
               const center = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
-              if (center) center.click();
+              if (center) deepClick(center);
             }
-            setTimeout(run, 1500);
+            
+            setTimeout(run, 1000);
           }
+          
+          // Blokuj wyskakuj\u0105ce okna
           window.open = function() { return { focus: function() {} }; };
-          setTimeout(run, 1500);
+          
+          run();
         })();
       ''',
     );

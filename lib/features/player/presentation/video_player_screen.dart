@@ -143,6 +143,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       'Accept': '*/*',
       'Referer': referer,
       'Origin': origin,
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'cross-site',
+      'Sec-Fetch-Dest': 'video',
     };
 
     if (widget.args.headers != null) {
