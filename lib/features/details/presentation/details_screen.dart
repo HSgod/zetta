@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/scraper/scraper_service.dart';
@@ -109,71 +110,264 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     final isFavorite = ref.watch(favoritesProvider).any((i) => i.id == widget.item.id);
     final savedSource = ref.watch(sourceHistoryProvider)[widget.item.id];
     final settingsAsync = ref.watch(scraperSettingsProvider);
+    final screenSize = MediaQuery.of(context).size;
+    final isTV = screenSize.width > 900;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(context, isFavorite),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMetaInfo(),
-                  const SizedBox(height: 24),
-                  const Text('Opis', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(widget.item.description ?? "Brak opisu", style: const TextStyle(color: Colors.white70, fontSize: 16)),
-                  
-                  if (widget.item.type == MediaType.series) ...[
-                    const SizedBox(height: 24),
-                    const Text('Sezony', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    _buildSeasonSelector(),
-                    if (_episodes != null) ...[
-                      const SizedBox(height: 16),
-                      const Text('Odcinki', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      _buildEpisodeSelector(),
-                    ],
-                  ],
+      body: Stack(
+        children: [
+          // 1. Rozmyte tło (Backdrop)
+          _buildBackground(screenSize),
 
-                  const SizedBox(height: 32),
-                  const Text('Dost\u0119pne źr\u00f3d\u0142a', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                  const Divider(color: Colors.white24, height: 32),
-                  
-                  settingsAsync.when(
-                    data: (config) {
-                      final hasActive = config.enabledScrapers.values.any((v) => v == true);
-                      if (!hasActive) {
-                        return _buildNoScrapersWarning(context);
-                      }
-                      
-                      if (_isLoadingSources) {
-                        return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)));
-                      } else if (_error != null) {
-                        return Center(child: Text('B\u0142\u0105d: $_error', style: const TextStyle(color: Colors.red)));
-                      } else if (_sources != null && _sources!.isNotEmpty) {
-                        return Column(children: _buildGroupedSources(context, savedSource));
-                      } else if (_sources != null && _sources!.isEmpty) {
-                        return const Center(child: Text('Nie znaleziono źr\u00f3de\u0142 dla tego wyboru.', style: TextStyle(color: Colors.white30)));
-                      } else {
-                        return const Center(child: Text('Wybierz odcinek, aby zobaczyć źr\u00f3d\u0142a', style: TextStyle(color: Colors.white30)));
-                      }
-                    },
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (_, __) => const Text('B\u0142\u0105d ładowania ustawień', style: TextStyle(color: Colors.red)),
-                  ),
-                  
-                  const SizedBox(height: 100),
-                ],
-              ),
+          // 2. Główna zawartość
+          SafeArea(
+            child: isTV 
+              ? _buildTVLayout(context, isFavorite, savedSource, settingsAsync)
+              : _buildMobileLayout(context, isFavorite, savedSource, settingsAsync),
+          ),
+          
+          // Przycisk wstecz dla TV
+          Positioned(
+            top: 20,
+            left: 20,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBackground(Size size) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (widget.item.posterUrl != null)
+          Image.network(
+            widget.item.posterUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              color: Colors.black.withOpacity(0.75),
+            ),
+          ),
+        ),
+        // Gradient dla lepszej czytelności tekstu
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.black.withOpacity(0.8),
+                Colors.black.withOpacity(0.4),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTVLayout(BuildContext context, bool isFavorite, SavedSource? savedSource, AsyncValue settingsAsync) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Lewa kolumna: Plakat
+        Expanded(
+          flex: 2,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(60, 40, 40, 40),
+            child: Center(
+              child: Hero(
+                tag: 'poster-${widget.item.id}',
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: widget.item.posterUrl != null
+                        ? Image.network(widget.item.posterUrl!, fit: BoxFit.contain)
+                        : const Icon(Icons.movie, size: 200, color: Colors.white24),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Prawa kolumna: Informacje i źródła
+        Expanded(
+          flex: 3,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 60, 60, 60),
+            physics: const ClampingScrollPhysics(),
+            children: [
+              _buildMainInfo(isFavorite),
+              const SizedBox(height: 24),
+              _buildDescription(),
+              const SizedBox(height: 32),
+              
+              if (widget.item.type == MediaType.series) ...[
+                const Text('Sezony', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _buildSeasonSelector(),
+                if (_episodes != null) ...[
+                  const SizedBox(height: 24),
+                  const Text('Odcinki', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  _buildEpisodeSelector(),
+                ],
+                const SizedBox(height: 32),
+              ],
+
+              const Text('Dostępne źródła', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Divider(color: Colors.white24, height: 32),
+              
+              _buildSourcesSection(context, settingsAsync, savedSource),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context, bool isFavorite, SavedSource? savedSource, AsyncValue settingsAsync) {
+    return CustomScrollView(
+      physics: const ClampingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 300,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          flexibleSpace: FlexibleSpaceBar(
+            background: widget.item.posterUrl != null 
+              ? Image.network(widget.item.posterUrl!, fit: BoxFit.cover)
+              : Container(color: Colors.grey[900]),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _buildMainInfo(isFavorite),
+              const SizedBox(height: 20),
+              _buildDescription(),
+              const SizedBox(height: 24),
+              if (widget.item.type == MediaType.series) ...[
+                _buildSeasonSelector(),
+                if (_episodes != null) _buildEpisodeSelector(),
+                const SizedBox(height: 24),
+              ],
+              const Text('Źródła', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Divider(color: Colors.white24),
+              _buildSourcesSection(context, settingsAsync, savedSource),
+              const SizedBox(height: 50),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMainInfo(bool isFavorite) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                widget.item.title, 
+                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              ),
+            ),
+            IconButton(
+              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.white, size: 28),
+              onPressed: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(
+              widget.item.releaseDate?.split('-').first ?? "2024", 
+              style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(width: 20),
+            if (widget.item.rating != null) ...[
+              const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+              const SizedBox(width: 4),
+              Text(
+                widget.item.rating!.toStringAsFixed(1), 
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+            const SizedBox(width: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white30),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                widget.item.type == MediaType.movie ? 'FILM' : 'SERIAL',
+                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDescription() {
+    return Text(
+      widget.item.description ?? "Brak opisu", 
+      style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5, fontWeight: FontWeight.w400),
+    );
+  }
+
+  Widget _buildSourcesSection(BuildContext context, AsyncValue settingsAsync, SavedSource? savedSource) {
+    return settingsAsync.when(
+      data: (config) {
+        final hasActive = config.enabledScrapers.values.any((v) => v == true);
+        if (!hasActive) {
+          return _buildNoScrapersWarning(context);
+        }
+        
+        if (_isLoadingSources) {
+          return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)));
+        } else if (_error != null) {
+          return Center(child: Text('Błąd: $_error', style: const TextStyle(color: Colors.red)));
+        } else if (_sources != null && _sources!.isNotEmpty) {
+          return Column(children: _buildGroupedSources(context, savedSource));
+        } else if (_sources != null && _sources!.isEmpty) {
+          return const Center(child: Text('Nie znaleziono źródeł dla tego wyboru.', style: TextStyle(color: Colors.white30, fontSize: 16)));
+        } else {
+          return const Center(child: Text('Wybierz odcinek, aby zobaczyć źródła', style: TextStyle(color: Colors.white30, fontSize: 16)));
+        }
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Text('Błąd ładowania ustawień', style: TextStyle(color: Colors.red)),
     );
   }
 
@@ -191,30 +385,20 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 48),
           const SizedBox(height: 16),
           const Text(
-            'BRAK AKTYWNYCH \u0179R\u00d3DE\u0141',
+            'BRAK AKTYWNYCH ŹRÓDEŁ',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Aby wyszukiwać filmy i seriale, musisz najpierw włączyć co najmniej jeden scraper w ustawieniach aplikacji.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ScraperSelectionScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => ScraperSelectionScreen()));
             },
             icon: const Icon(Icons.settings),
-            label: const Text('ID\u0179 DO USTAWIEN'),
+            label: const Text('IDŹ DO USTAWIEŃ'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -232,16 +416,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     grouped.forEach((sourceName, list) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 12),
+          padding: const EdgeInsets.only(top: 24, bottom: 12),
           child: Row(
             children: [
-              const Icon(Icons.source_outlined, color: Colors.redAccent, size: 18),
+              const Icon(Icons.bolt, color: Colors.amber, size: 20),
               const SizedBox(width: 8),
               Text(
                 sourceName.toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.5),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
               const Expanded(child: Divider(color: Colors.white10)),
             ],
           ),
@@ -254,7 +438,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildSeasonSelector() {
     return SizedBox(
-      height: 45,
+      height: 50,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _totalSeasons,
@@ -262,14 +446,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           final seasonNum = index + 1;
           final isSelected = _selectedSeason == seasonNum;
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 12),
             child: ChoiceChip(
-              label: Text('Sezon $seasonNum'),
+              label: Text('SEZON $seasonNum'),
               selected: isSelected,
               onSelected: (val) => _loadEpisodes(seasonNum),
-              selectedColor: Colors.redAccent,
-              backgroundColor: Colors.grey[900],
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white70),
+              selectedColor: Colors.white,
+              backgroundColor: Colors.white10,
+              labelStyle: TextStyle(color: isSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              showCheckmark: false,
             ),
           );
         },
@@ -279,7 +465,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildEpisodeSelector() {
     return SizedBox(
-      height: 45,
+      height: 50,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _episodes!.length,
@@ -287,80 +473,23 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           final ep = _episodes![index];
           final isSelected = _selectedEpisode == ep.episodeNumber;
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 12),
             child: ChoiceChip(
-              label: Text('Odc. ${ep.episodeNumber}'),
+              label: Text('ODC. ${ep.episodeNumber}'),
               selected: isSelected,
               onSelected: (val) {
                 setState(() => _selectedEpisode = ep.episodeNumber);
                 _fetchSources(season: _selectedSeason, episode: ep.episodeNumber);
               },
               selectedColor: Colors.redAccent,
-              backgroundColor: Colors.grey[900],
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white70),
+              backgroundColor: Colors.white10,
+              labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              showCheckmark: false,
             ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context, bool isFavorite) {
-    return SliverAppBar(
-      expandedHeight: 400,
-      pinned: true,
-      backgroundColor: Colors.black,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (widget.item.posterUrl != null)
-              Image.network(
-                widget.item.posterUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: Colors.grey[900]),
-              )
-            else
-              Container(color: Colors.grey[900]),
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.white),
-          onPressed: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMetaInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(widget.item.title, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Text(widget.item.releaseDate?.split('-').first ?? "2024", style: const TextStyle(color: Colors.white70)),
-            const SizedBox(width: 16),
-            if (widget.item.rating != null) ...[
-              const Icon(Icons.star, color: Colors.amber, size: 16),
-              const SizedBox(width: 4),
-              Text(widget.item.rating!.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ],
-          ],
-        ),
-      ],
     );
   }
 
@@ -369,41 +498,24 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     if (savedSource != null) {
       String cleanCurrent = source.url.split('?').first.replaceAll(RegExp(r'/$'), '');
       String cleanSaved = (savedSource.pageUrl ?? "").split('?').first.replaceAll(RegExp(r'/$'), '');
-      
-      if (source.url.contains('ekino-tv.pl')) {
-        final p1 = Uri.tryParse(cleanCurrent)?.path ?? "---";
-        final p2 = Uri.tryParse(cleanSaved)?.path ?? "===";
-        isSuggested = p1 == p2 && p1 != "---";
-      } else {
-        isSuggested = cleanCurrent == cleanSaved;
-      }
+      isSuggested = cleanCurrent == cleanSaved;
     }
     
-    final primaryColor = Colors.greenAccent;
-
-    return Card(
-      color: Colors.grey[900],
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSuggested 
-            ? BorderSide(color: primaryColor.withOpacity(0.8), width: 2)
-            : BorderSide.none,
-      ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isSuggested ? primaryColor : Colors.grey[800],
-          child: Icon(
-            isSuggested ? Icons.play_arrow_rounded : Icons.video_library_rounded,
-            color: isSuggested ? Colors.black : Colors.white70,
-          ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        tileColor: Colors.white.withOpacity(0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: isSuggested ? const BorderSide(color: Colors.greenAccent, width: 2) : BorderSide.none,
         ),
-        title: Text(source.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: isSuggested 
-            ? Text('Źr\u00f3d\u0142o do kontynuowania ogl\u0105dania', style: TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.w500))
-            : Text(source.quality, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white70),
+        leading: Icon(isSuggested ? Icons.play_circle_fill : Icons.play_arrow_rounded, color: isSuggested ? Colors.greenAccent : Colors.white),
+        title: Text(source.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Text(source.quality, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        trailing: isSuggested 
+            ? const Text('KONTYNUUJ', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))
+            : const Icon(Icons.chevron_right, color: Colors.white30),
         onTap: () {
           Navigator.push(
             context,
