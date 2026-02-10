@@ -108,7 +108,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final isFavorite = ref.watch(favoritesProvider).any((i) => i.id == widget.item.id);
-    final savedSource = ref.watch(sourceHistoryProvider)[widget.item.id];
+    
+    // Klucz do zapisanego źródła (uwzględnia sezon i odcinek dla seriali)
+    String storageId = widget.item.id;
+    if (widget.item.type == MediaType.series && _selectedSeason != null && _selectedEpisode != null) {
+      storageId = "${widget.item.id}_s${_selectedSeason}_e${_selectedEpisode}";
+    }
+    
+    final savedSource = ref.watch(sourceHistoryProvider)[storageId];
     final settingsAsync = ref.watch(scraperSettingsProvider);
     final screenSize = MediaQuery.of(context).size;
     final isTV = screenSize.width > 900;
@@ -496,9 +503,18 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource) {
     bool isSuggested = false;
     if (savedSource != null) {
-      String cleanCurrent = source.url.split('?').first.replaceAll(RegExp(r'/$'), '');
-      String cleanSaved = (savedSource.pageUrl ?? "").split('?').first.replaceAll(RegExp(r'/$'), '');
-      isSuggested = cleanCurrent == cleanSaved;
+      // 1. Próbujemy dopasować po nazwie źródła i tytule (serwerze) - najbardziej stabilne
+      if (savedSource.sourceName != null && savedSource.title != null) {
+        isSuggested = source.sourceName == savedSource.sourceName && 
+                     source.title == savedSource.title;
+      }
+      
+      // 2. Jeśli nie dopasowano lub brak danych, próbujemy po URL (fallback)
+      if (!isSuggested) {
+        String cleanCurrent = source.url.split('?').first.replaceAll(RegExp(r'/$'), '');
+        String cleanSaved = (savedSource.pageUrl ?? "").split('?').first.replaceAll(RegExp(r'/$'), '');
+        isSuggested = cleanCurrent == cleanSaved;
+      }
     }
     
     return Container(
@@ -524,6 +540,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 args: PlayerArgs(
                   item: widget.item,
                   initialUrl: source.url,
+                  sourceName: source.sourceName,
+                  title: source.title,
+                  season: _selectedSeason,
+                  episode: _selectedEpisode,
                 ),
               ),
             ),

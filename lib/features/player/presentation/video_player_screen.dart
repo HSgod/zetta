@@ -9,6 +9,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../../home/domain/media_item.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../library/presentation/providers/library_provider.dart';
 import 'player_args.dart';
@@ -115,6 +116,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     });
   }
 
+  String get _storageId {
+    if (widget.args.item.type == MediaType.series && widget.args.season != null && widget.args.episode != null) {
+      return "${widget.args.item.id}_s${widget.args.season}_e${widget.args.episode}";
+    }
+    return widget.args.item.id;
+  }
+
   String? _lastStreamUrl;
   void _startPlayback(String streamUrl) {
     if (!mounted || _isExiting) return;
@@ -133,10 +141,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       }
 
       ref.read(sourceHistoryProvider.notifier).saveSource(
-        widget.args.item.id,
+        _storageId,
         SavedSource(
           url: streamUrl, 
           pageUrl: cleanUrl,
+          sourceName: widget.args.sourceName,
+          title: widget.args.title,
           headers: widget.args.headers,
           automationScript: widget.args.automationScript,
         ),
@@ -217,7 +227,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Future<void> _saveProgress() async {
     if (_isLoading || _hasError) return; // Usunięto _isExiting, bo chcemy zapisać przy wyjściu
     final prefs = await SharedPreferences.getInstance();
-    final key = "progress_${widget.args.item.id}";
+    final key = "progress_$_storageId";
     final position = player.state.position.inSeconds;
     final duration = player.state.duration.inSeconds;
 
@@ -231,7 +241,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final key = "progress_${widget.args.item.id}";
+    final key = "progress_$_storageId";
     final savedSeconds = prefs.getInt(key);
     
     debugPrint('Zetta Player: Wczytuję postęp dla $key -> $savedSeconds sek');

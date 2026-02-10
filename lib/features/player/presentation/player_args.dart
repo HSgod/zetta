@@ -5,6 +5,10 @@ class PlayerArgs {
   final MediaItem item;
   final String? initialUrl;
   final String? videoUrl;
+  final String? sourceName;
+  final String? title;
+  final int? season;
+  final int? episode;
   final Map<String, String>? headers;
   final String? automationScript;
   final List<SubtitleSource>? subtitles;
@@ -13,6 +17,10 @@ class PlayerArgs {
     required this.item, 
     this.initialUrl,
     this.videoUrl, 
+    this.sourceName,
+    this.title,
+    this.season,
+    this.episode,
     this.headers,
     this.automationScript,
     this.subtitles,

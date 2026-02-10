@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../home/domain/media_item.dart';
 import '../../../../core/theme/theme_provider.dart';
 
@@ -123,7 +122,8 @@ class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
     prefs.setStringList(_key, jsonList);
 
     prefs.remove('progress_$id');
-    prefs.remove('source_$id');
+    // Usuwamy źródło przez dedykowany provider, aby odświeżyć UI
+    ref.read(sourceHistoryProvider.notifier).removeSource(id);
   }
 }
 
@@ -132,14 +132,25 @@ final continueWatchingProvider = NotifierProvider<ContinueWatchingNotifier, List
 class SavedSource {
   final String url;
   final String? pageUrl;
+  final String? sourceName;
+  final String? title;
   final Map<String, String>? headers;
   final String? automationScript;
 
-  SavedSource({required this.url, this.pageUrl, this.headers, this.automationScript});
+  SavedSource({
+    required this.url, 
+    this.pageUrl, 
+    this.sourceName,
+    this.title,
+    this.headers, 
+    this.automationScript
+  });
 
   Map<String, dynamic> toMap() => {
     'url': url,
     'pageUrl': pageUrl,
+    'sourceName': sourceName,
+    'title': title,
     'headers': headers,
     'automationScript': automationScript,
   };
@@ -147,6 +158,8 @@ class SavedSource {
   factory SavedSource.fromMap(Map<String, dynamic> map) => SavedSource(
     url: map['url'],
     pageUrl: map['pageUrl'],
+    sourceName: map['sourceName'],
+    title: map['title'],
     headers: map['headers'] != null ? Map<String, String>.from(map['headers']) : null,
     automationScript: map['automationScript'],
   );
@@ -177,6 +190,14 @@ class SourceHistoryNotifier extends Notifier<Map<String, SavedSource>> {
     prefs.setString('source_$mediaId', json.encode(source.toMap()));
     // Aktualizujemy stan, co wymusi przebudowanie UI
     state = {...state, mediaId: source};
+  }
+
+  void removeSource(String mediaId) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.remove('source_$mediaId');
+    final newState = {...state};
+    newState.remove(mediaId);
+    state = newState;
   }
 
   SavedSource? getSource(String mediaId) {
