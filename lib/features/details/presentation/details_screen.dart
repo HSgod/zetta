@@ -134,15 +134,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               : _buildMobileLayout(context, isFavorite, savedSource, settingsAsync),
           ),
           
-          // Przycisk wstecz dla TV
-          Positioned(
-            top: 20,
-            left: 20,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
-              onPressed: () => Navigator.pop(context),
+          // Przycisk wstecz dla TV (w mobile mamy SliverAppBar ze strzałką)
+          if (isTV)
+            Positioned(
+              top: 20,
+              left: 20,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
-          ),
         ],
       ),
     );
