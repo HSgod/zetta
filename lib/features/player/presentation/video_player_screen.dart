@@ -464,18 +464,39 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                         Container(
                           color: Colors.black,
                           child: const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(color: Colors.white),
+                                SizedBox(height: 16),
+                                Text(
+                                  "Łączenie ze źródłem",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      StreamBuilder<bool>(
-                        stream: player.stream.buffering,
-                        builder: (context, snapshot) {
-                          if (snapshot.data == true) {
-                            return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
+                      if (!_isLoading)
+                        StreamBuilder<bool>(
+                          stream: player.stream.buffering,
+                          builder: (context, snapshot) {
+                            if (snapshot.data == true) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                     ],
                   ),
                 ),
