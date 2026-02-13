@@ -85,13 +85,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       native.setProperty('demuxer-lavf-o', 'protocol_whitelist=[file,rtp,tcp,udp,http,https,tls,tls_aes_128_gcm_sha256,tls_aes_256_gcm_sha384]');
       native.setProperty('tls-ca-file', ''); // Ignoruj systemowe CA je\u015bli s\u0105 przestarza\u0142e
       
-      // Dodatkowe opcje stabilno\u015bci dla Windowsa
-      if (Platform.isWindows) {
-        native.setProperty('hwdec', 'no'); // Wy\u0142\u0105czamy hwdec dla testu stabilno\u015bci
-        native.setProperty('vo', 'gpu'); 
-        native.setProperty('gpu-context', 'd3d11');
-      }
-    }
 
     controller = VideoController(player);
 
@@ -189,7 +182,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     });
 
     const mobileUA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
-    const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
     
     String referer = widget.args.initialUrl ?? 'https://ekino-tv.pl/';
     String origin = 'https://ekino-tv.pl';
@@ -797,13 +789,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
   @override
   Widget build(BuildContext context) {
     const mobileUA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
-    const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
-
-    // Mixdrop / VOE działają lepiej na Desktop UA
-    String snifferUA = mobileUA;
-    if (widget.initialUrl.contains('mixdrop') || widget.initialUrl.contains('voe')) {
-      snifferUA = desktopUA;
-    }
 
     final initialOrigin = widget.args.initialUrl != null ? Uri.parse(widget.args.initialUrl!).origin : 'https://ekino-tv.pl';
     final headers = widget.args.headers ?? {

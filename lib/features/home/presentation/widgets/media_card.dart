@@ -72,143 +72,106 @@ class _MediaCardState extends ConsumerState<MediaCard> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isWindows = Platform.isWindows;
-    final active = _isFocused || _isHovered;
 
     return RepaintBoundary(
       child: Padding(
         padding: const EdgeInsets.all(6.0),
         child: GestureDetector(
-          onSecondaryTapDown: (details) {
-            if (isWindows) {
-              _showContextMenu(context, details.globalPosition);
-            }
-          },
           child: InkWell(
             onTap: () => context.push('/details', extra: widget.item),
             onLongPress: widget.onLongPress,
             hoverColor: Colors.transparent,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
-            onHover: (value) {
-              if (isWindows) {
-                setState(() {
-                  _isHovered = value;
-                });
-              }
-            },
-            onFocusChange: (value) {
-              setState(() {
-                _isFocused = value;
-              });
-            },
-            borderRadius: BorderRadius.circular(isWindows ? 16 : 28),
-            child: AnimatedScale(
-              scale: active ? 1.05 : 1.0,
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOutCubic,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(isWindows ? 16 : 28),
-                        border: Border.all(
-                          color: active 
-                              ? colorScheme.primary 
-                              : colorScheme.outlineVariant.withOpacity(0.5),
-                          width: active ? 2 : 1,
-                        ),
-                        color: colorScheme.surfaceContainerHighest,
-                        boxShadow: active ? [
-                          BoxShadow(
-                            color: colorScheme.primary.withOpacity(0.2),
-                            blurRadius: 12,
-                            spreadRadius: 1,
-                          )
-                        ] : [],
+            borderRadius: BorderRadius.circular(28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withOpacity(0.5),
+                        width: 1,
                       ),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          widget.item.posterUrl != null
-                              ? Image.network(
-                                  widget.item.posterUrl!,
-                                  fit: BoxFit.cover,
-                                  cacheWidth: 300,
-                                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
-                                )
-                              : _buildPlaceholder(colorScheme),
+                      color: colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        widget.item.posterUrl != null
+                            ? Image.network(
+                                widget.item.posterUrl!,
+                                fit: BoxFit.cover,
+                                cacheWidth: 300,
+                                errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
+                              )
+                            : _buildPlaceholder(colorScheme),
 
-                          if (widget.item.rating != null && widget.item.rating! > 0)
-                            Positioned(
-                              top: isWindows ? 8 : 12,
-                              right: isWindows ? 8 : 12,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isWindows ? 6 : 10, 
-                                  vertical: isWindows ? 4 : 6
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.secondaryContainer.withOpacity(0.95),
-                                  borderRadius: BorderRadius.circular(isWindows ? 8 : 16),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.star_rounded, color: colorScheme.primary, size: isWindows ? 14 : 16),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.item.rating!.toStringAsFixed(1),
-                                      style: TextStyle(
-                                        color: colorScheme.onSecondaryContainer,
-                                        fontSize: isWindows ? 11 : 13,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                        if (widget.item.rating != null && widget.item.rating! > 0)
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10, 
+                                vertical: 6
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.secondaryContainer.withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.star_rounded, color: colorScheme.primary, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.item.rating!.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      color: colorScheme.onSecondaryContainer,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: (isWindows 
-                              ? Theme.of(context).textTheme.bodyMedium 
-                              : Theme.of(context).textTheme.titleSmall)?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.1,
-                                color: active ? colorScheme.primary : null,
-                              ),
-                        ),
-                        const SizedBox(height: 1),
-                        if (widget.item.releaseDate != null && widget.item.releaseDate!.length >= 4)
-                          Text(
-                            widget.item.releaseDate!.substring(0, 4),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: isWindows ? 11 : null,
-                                  fontWeight: FontWeight.w500,
-                                ),
                           ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.1,
+                            ),
+                      ),
+                      const SizedBox(height: 1),
+                      if (widget.item.releaseDate != null && widget.item.releaseDate!.length >= 4)
+                        Text(
+                          widget.item.releaseDate!.substring(0, 4),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),

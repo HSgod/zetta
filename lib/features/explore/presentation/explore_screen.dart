@@ -20,7 +20,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Platform.isWindows ? null : AppBar(
+      appBar: AppBar(
         title: const Text('Odkrywaj'),
         centerTitle: true,
       ),
@@ -31,7 +31,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (Platform.isWindows) const SizedBox(height: 24),
                 _buildTypeSelector(),
                 _buildGenreSelector(),
                 Divider(
@@ -112,26 +111,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget _buildCategoryGrid() {
     final genreId = _selectedGenreId != null ? int.tryParse(_selectedGenreId!) : null;
     final discoverData = ref.watch(discoverProvider((type: _selectedType, genreId: genreId)));
-    final isWindows = Platform.isWindows;
 
     return discoverData.when(
       data: (items) {
-        if (isWindows) {
-          return SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildWindowsListTile(items[index]),
-                childCount: items.length,
-              ),
-            ),
-          );
-        }
-        
         return SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 160,
               mainAxisSpacing: 24,
               crossAxisSpacing: 16,
@@ -146,64 +132,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       },
       loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
       error: (err, _) => SliverFillRemaining(child: Center(child: Text('Błąd: $err'))),
-    );
-  }
-
-  Widget _buildWindowsListTile(MediaItem item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      height: 140,
-      child: InkWell(
-        onTap: () => context.push('/details', extra: item),
-        borderRadius: BorderRadius.circular(12),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: AspectRatio(
-                aspectRatio: 2 / 3,
-                child: item.posterUrl != null
-                    ? Image.network(item.posterUrl!, fit: BoxFit.cover)
-                    : Container(color: Colors.grey[900]),
-              ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    item.title,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (item.rating != null) ...[
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                        const SizedBox(width: 4),
-                        Text(item.rating!.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 12),
-                      ],
-                      Text(item.releaseDate?.split('-').first ?? '', style: const TextStyle(color: Colors.white54)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.description ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.white24),
-            const SizedBox(width: 16),
-          ],
-        ),
-      ),
     );
   }
 }

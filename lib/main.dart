@@ -16,9 +16,6 @@ Future<void> _clearAppCache() async {
     try {
       final tempDir = await getTemporaryDirectory();
       if (tempDir.existsSync()) {
-        // Na Windowsie getTemporaryDirectory często zwraca systemowy Temp.
-        // Bezpieczniej jest czyścić tylko pliki, do których mamy dostęp, 
-        // lub pominąć to, jeśli powoduje błędy.
         final List<FileSystemEntity> entities = await tempDir.list().toList();
         for (final entity in entities) {
           try {

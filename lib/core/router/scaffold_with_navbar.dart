@@ -41,8 +41,6 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    final isWindows = Platform.isWindows;
-    
     return PopScope(
       canPop: widget.navigationShell.currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -53,7 +51,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 640 && !isWindows) {
+          if (constraints.maxWidth < 640) {
             return Scaffold(
               extendBody: true,
               body: widget.navigationShell,
@@ -104,21 +102,11 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                           child: NavigationRail(
-                            extended: constraints.maxWidth > 1000 || isWindows,
-                            selectedIndex: isWindows && widget.navigationShell.currentIndex == 1 
-                                ? null 
-                                : (isWindows && widget.navigationShell.currentIndex > 1 
-                                    ? widget.navigationShell.currentIndex - 1 
-                                    : widget.navigationShell.currentIndex),
-                            onDestinationSelected: (int index) {
-                              int targetIndex = index;
-                              if (isWindows && index >= 1) {
-                                targetIndex = index + 1;
-                              }
-                              _onTap(context, targetIndex);
-                            },
+                            extended: constraints.maxWidth > 1000,
+                            selectedIndex: widget.navigationShell.currentIndex,
+                            onDestinationSelected: (int index) => _onTap(context, index),
                             backgroundColor: Colors.transparent,
-                            labelType: (constraints.maxWidth > 1000 || isWindows) 
+                            labelType: constraints.maxWidth > 1000 
                                 ? NavigationRailLabelType.none 
                                 : NavigationRailLabelType.all,
                             groupAlignment: -0.9,
@@ -138,7 +126,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                                           color: Theme.of(context).colorScheme.primary,
                                         ),
                                       ),
-                                      if (constraints.maxWidth > 1000 || isWindows) ...[
+                                      if (constraints.maxWidth > 1000) ...[
                                         const SizedBox(width: 12),
                                         Text(
                                           'ZETTA',
@@ -153,7 +141,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                                     ],
                                   ),
                                 ),
-                                if (constraints.maxWidth > 1000 || isWindows)
+                                if (constraints.maxWidth > 1000)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     child: SizedBox(
@@ -197,29 +185,28 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
-                            destinations: <NavigationRailDestination>[
-                              const NavigationRailDestination(
+                            destinations: const <NavigationRailDestination>[
+                              NavigationRailDestination(
                                 icon: Icon(Icons.home_outlined),
                                 selectedIcon: Icon(Icons.home),
                                 label: Text('Start'),
                               ),
-                              if (!isWindows) 
-                                const NavigationRailDestination(
-                                  icon: Icon(Icons.search_outlined),
-                                  selectedIcon: Icon(Icons.search),
-                                  label: Text('Szukaj'),
-                                ),
-                              const NavigationRailDestination(
+                              NavigationRailDestination(
+                                icon: Icon(Icons.search_outlined),
+                                selectedIcon: Icon(Icons.search),
+                                label: Text('Szukaj'),
+                              ),
+                              NavigationRailDestination(
                                 icon: Icon(Icons.explore_outlined),
                                 selectedIcon: Icon(Icons.explore),
                                 label: Text('Odkrywaj'),
                               ),
-                              const NavigationRailDestination(
+                              NavigationRailDestination(
                                 icon: Icon(Icons.video_library_outlined),
                                 selectedIcon: Icon(Icons.video_library),
                                 label: Text('Biblioteka'),
                               ),
-                              const NavigationRailDestination(
+                              NavigationRailDestination(
                                 icon: Icon(Icons.settings_outlined),
                                 selectedIcon: Icon(Icons.settings),
                                 label: Text('Ustawienia'),

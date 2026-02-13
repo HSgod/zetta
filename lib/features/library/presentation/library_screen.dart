@@ -43,20 +43,18 @@ class LibraryScreen extends ConsumerWidget {
     final favorites = ref.watch(favoritesProvider);
     final history = ref.watch(historyProvider);
     final continueWatching = ref.watch(continueWatchingProvider);
-    final isWindows = Platform.isWindows;
 
     return Scaffold(
-      appBar: isWindows ? null : AppBar(
+      appBar: AppBar(
         title: const Text('Moja biblioteka'),
         centerTitle: true,
       ),
       body: Center(
         child: Container(
-          constraints: BoxConstraints(maxWidth: isWindows ? 1000 : double.infinity),
+          constraints: const BoxConstraints(maxWidth: double.infinity),
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              if (isWindows) const SliverPadding(padding: EdgeInsets.only(top: 40)),
               _buildSection(
                 context,
                 title: 'Kontynuuj oglądanie',

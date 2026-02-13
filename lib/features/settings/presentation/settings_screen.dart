@@ -21,21 +21,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                    (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final useMaterialYou = ref.watch(materialYouProvider);
     final useGestures = ref.watch(playerGesturesProvider);
-    final isWindows = Platform.isWindows;
 
     return Scaffold(
       body: Center(
         child: Container(
-          constraints: BoxConstraints(maxWidth: isWindows ? 800 : double.infinity),
+          constraints: const BoxConstraints(maxWidth: double.infinity),
           child: CustomScrollView(
             slivers: [
-              if (!isWindows) SliverAppBar(
+              const SliverAppBar(
                 floating: true,
                 pinned: true,
-                title: const Text('Ustawienia'),
+                title: Text('Ustawienia'),
                 centerTitle: true,
               ),
-              if (isWindows) const SliverPadding(padding: EdgeInsets.only(top: 40)),
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +47,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         value: isDark,
                         onChanged: (val) => ref.read(themeModeProvider.notifier).setCheck(val),
                       ),
-                      if (!isWindows) _buildSwitchTile(
+                      _buildSwitchTile(
                         title: 'Material You',
                         subtitle: 'Dynamiczne kolory z tapety (Android 12+)',
                         icon: Icons.palette_rounded,
@@ -136,12 +134,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildSettingsCard(List<Widget> children) {
-    final isWindows = Platform.isWindows;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(isWindows ? 12 : 28),
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Column(children: children),
     );

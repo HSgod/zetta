@@ -30,13 +30,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(searchResultsProvider);
     final query = ref.watch(searchQueryProvider);
-    final isWindows = Platform.isWindows;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            if (!isWindows) Padding(
+            Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SearchBar(
                 controller: _controller,
@@ -87,10 +86,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         }
                         return GridView.builder(
                           padding: const EdgeInsets.all(16),
-                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: isWindows ? 150 : 160,
-                            mainAxisSpacing: isWindows ? 20 : 24,
-                            crossAxisSpacing: isWindows ? 12 : 16,
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 160,
+                            mainAxisSpacing: 24,
+                            crossAxisSpacing: 16,
                             childAspectRatio: 0.62,
                           ),
                           itemCount: items.length,
