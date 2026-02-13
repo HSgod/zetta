@@ -31,11 +31,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _showControls = true;
-  bool _showWebViewDebug = false; // Powrót do false
+  bool _showWebViewDebug = false;
   bool _isExiting = false;
   Timer? _hideControlsTimer;
   Timer? _progressSaveTimer;
-  Timer? _watchdogTimer; // Watchdog dla zaciętego odtwarzania
+  Timer? _watchdogTimer;
   Timer? _timeoutTimer;
   
   String? _gestureType; 
@@ -73,18 +73,17 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         DeviceOrientation.landscapeRight
       ]);
     }
-    WakelockPlus.enable(); // Blokuj wygaszanie ekranu
+    WakelockPlus.enable();
 
     player = Player();
     
-    // Opcje dla libmpv omijaj\u0105ce b\u0142\u0119dy handshake SSL na niekt\u00f3rych CDN
     if (player.platform is NativePlayer) {
       final native = player.platform as dynamic;
       native.setProperty('tls-verify', 'no');
       native.setProperty('http-proxy', ''); 
       native.setProperty('demuxer-lavf-o', 'protocol_whitelist=[file,rtp,tcp,udp,http,https,tls,tls_aes_128_gcm_sha256,tls_aes_256_gcm_sha384]');
-      native.setProperty('tls-ca-file', ''); // Ignoruj systemowe CA je\u015bli s\u0105 przestarza\u0142e
-      
+      native.setProperty('tls-ca-file', '');
+    }
 
     controller = VideoController(player);
 
@@ -100,7 +99,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       }
     }));
 
-    // Watchdog logic: detect stuck playback
     _subscriptions.add(player.stream.position.listen((pos) {
       if (!_isLoading && !_hasError && !_isExiting) {
         if (pos.inMilliseconds > 0) {
@@ -118,8 +116,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     _watchdogTimer?.cancel();
     _watchdogTimer = Timer(const Duration(seconds: 15), () {
       if (mounted && !_isLoading && !_isExiting && player.state.playing) {
-        // Jeśli film "gra" (playing=true), ale pozycja od 15s się nie zmienia
-        debugPrint("Zetta Player: Watchdog detected stuck playback!");
         setState(() {
           _hasError = true;
         });
@@ -132,7 +128,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted && _isLoading && !_isExiting) {
         _timeoutTimer?.cancel();
-        _resetWatchdogTimer(); // Startujemy watchdog po załadowaniu
+        _resetWatchdogTimer();
         setState(() {
           _isLoading = false;
           _hasError = false;
@@ -201,7 +197,6 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       'Connection': 'keep-alive',
     };
 
-    // Dla Obejrzyj.to (Filemoon) usuwamy Origin i Sec-Fetch, bo s\u0105 zbyt rygorystyczne
     if (streamUrl.contains('r66nv9ed.com') || streamUrl.contains('filemoon') || streamUrl.contains('boosteradx')) {
       headers.remove('Origin');
     } else {
@@ -252,13 +247,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _saveProgress() async {
-    if (_isLoading || _hasError) return; // Usunięto _isExiting, bo chcemy zapisać przy wyjściu
+    if (_isLoading || _hasError) return;
     final prefs = await SharedPreferences.getInstance();
     final key = "progress_$_storageId";
     final position = player.state.position.inSeconds;
     final duration = player.state.duration.inSeconds;
 
-    debugPrint('Zetta Player: Zapisuję postęp dla $key -> $position sek (duration: $duration)');
     await prefs.setInt(key, position);
 
     if (duration > 0 && position > duration * 0.9) {
@@ -270,19 +264,14 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final prefs = await SharedPreferences.getInstance();
     final key = "progress_$_storageId";
     final savedSeconds = prefs.getInt(key);
-    
-    debugPrint('Zetta Player: Wczytuję postęp dla $key -> $savedSeconds sek');
 
     if (savedSeconds != null && savedSeconds > 10) {
-      debugPrint('Zetta Player: Czekam na duration, aby wznowić od $savedSeconds sek');
       StreamSubscription? sub;
       sub = player.stream.duration.listen((duration) {
         if (duration.inSeconds > 0) {
-          debugPrint('Zetta Player: Duration znane (${duration.inSeconds}s), wykonuję seek do $savedSeconds');
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted && !_isExiting) {
               player.seek(Duration(seconds: savedSeconds));
-              debugPrint('Zetta Player: Seek wysłany');
             }
           });
           sub?.cancel();
@@ -336,7 +325,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     if (_isExiting) return;
     setState(() => _isExiting = true);
     
-    await _saveProgress(); // Zapisujemy postęp przed wyjściem
+    await _saveProgress();
     
     _hideControlsTimer?.cancel();
     _progressSaveTimer?.cancel();
@@ -352,7 +341,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
-    WakelockPlus.disable(); // Przywr\u00f3ć wygaszanie ekranu
+    WakelockPlus.disable();
     if (!_isExiting) {
       _saveProgress();
       _hideControlsTimer?.cancel();
@@ -789,6 +778,12 @@ class _VideoSnifferState extends State<VideoSniffer> {
   @override
   Widget build(BuildContext context) {
     const mobileUA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
+    const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+    String snifferUA = mobileUA;
+    if (widget.initialUrl.contains('mixdrop') || widget.initialUrl.contains('voe')) {
+      snifferUA = desktopUA;
+    }
 
     final initialOrigin = widget.args.initialUrl != null ? Uri.parse(widget.args.initialUrl!).origin : 'https://ekino-tv.pl';
     final headers = widget.args.headers ?? {
@@ -799,7 +794,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
 
     final defaultScript = r"""
             (function() {
-              // Anti-AdBlock Bypass
               window.google_ad_client = "ca-pub-zetta";
               window.adsbygoogle = { push: function() {} };
               window.ga = function() {};
@@ -823,7 +817,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                 
                 var currentUrl = window.location.href;
 
-                // 1. Przyciski startowe (Ekino buttonprch, Obejrzyj.to itp)
                 document.querySelectorAll('a, button, .btn-play, .btn-primary, .warning_ch a, .buttonprch').forEach(el => {
                   const txt = el.textContent.toLowerCase();
                   if (txt.includes('odtwarzania') || txt.includes('oglądaj') || txt.includes('kliknij') || el.classList.contains('buttonprch')) {
@@ -831,7 +824,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                       el.dataset.zettaClicked = "true";
                       deepClick(el);
                       
-                      // Wymuś nawigację dla przycisków typu buttonprch
                       if (el.classList.contains('buttonprch') && el.href && el.href !== '#' && !el.href.startsWith('javascript')) {
                         setTimeout(() => {
                            if (window.location.href === currentUrl) window.location.href = el.href;
@@ -841,7 +833,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                   }
                 });
 
-                // 2. Playery (standardowe selektory)
                 var playSelectors = [
                   '.play-icon', '.play-btn', '.vjs-big-play-button', 
                   'button[aria-label="Play"]', '#play-btn', '.jw-display-icon-container'
@@ -859,7 +850,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
                   if (v.paused) v.play().catch(() => {});
                 });
 
-                // 3. Kliknięcie w środek ekranu jako ostateczność
                 if (attempts % 15 === 0) {
                    const centerEl = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
                    if (centerEl) deepClick(centerEl);
@@ -897,7 +887,7 @@ class _VideoSnifferState extends State<VideoSniffer> {
         javaScriptCanOpenWindowsAutomatically: true, 
         useShouldInterceptRequest: false, 
         useOnLoadResource: true, 
-        preferredContentMode: UserPreferredContentMode.MOBILE, // Powr\u00f3t do MOBILE dla Player
+        preferredContentMode: UserPreferredContentMode.MOBILE,
         mediaPlaybackRequiresUserGesture: false,
         domStorageEnabled: true,
         databaseEnabled: true,
@@ -916,7 +906,6 @@ class _VideoSnifferState extends State<VideoSniffer> {
 
         if (isStream) {
           if (reqUrl.contains('google.com') || reqUrl.contains('doubleclick') || reqUrl.contains('adsystem')) return;
-          debugPrint('Zetta Sniffer: Z\u0142apano stream -> $reqUrl');
           widget.onStreamCaught(reqUrl);
           controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
         }

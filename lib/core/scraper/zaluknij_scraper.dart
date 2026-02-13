@@ -33,19 +33,14 @@ class ZaluknijScraper extends BaseScraper {
     
     try {
       final response = await http.get(Uri.parse(searchUrl), headers: _headers);
-      debugPrint('Zaluknij Scraper: Search status: ${response.statusCode}');
       
       if (response.statusCode != 200) return [];
 
       final document = parse(response.body);
       final results = <SearchResult>[];
-
-      // Wyniki wyszukiwania na zaluknij s─ů w divach o klasie .item wewn─ůtrz #advanced-search
       final movieElements = document.querySelectorAll('#advanced-search a.item');
       
       if (movieElements.isEmpty) {
-        debugPrint('Zaluknij Scraper: Brak element├│w wyników .item. Szukam alternatywnych...');
-        // Fallback dla innych widok├│w
         final fallbackElements = document.querySelectorAll('.col-sm-4 a, .col-sm-2 a');
         for (var el in fallbackElements) {
           if (el.attributes['href']?.contains('/film/') == true || el.attributes['href']?.contains('/serial-online/') == true) {
@@ -85,13 +80,11 @@ class ZaluknijScraper extends BaseScraper {
   Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode}) async {
     String fetchUrl = result.url;
     
-    // Jeśli to serial i szukamy konkretnego odcinka
     if (season != null && episode != null) {
       try {
         final seriesPageResponse = await http.get(Uri.parse(result.url), headers: _headers);
         if (seriesPageResponse.statusCode == 200) {
           final doc = parse(seriesPageResponse.body);
-          // Szukamy linku do konkretnego odcinka w formacie [sXXeYY]
           final episodeTag = '[s${season.toString().padLeft(2, '0')}e${episode.toString().padLeft(2, '0')}]';
           
           final episodeLinks = doc.querySelectorAll('#episode-list a');
@@ -112,14 +105,11 @@ class ZaluknijScraper extends BaseScraper {
     }
 
     try {
-      debugPrint('Zaluknij Scraper: Pobieranie źródeł z $fetchUrl');
       final response = await http.get(Uri.parse(fetchUrl), headers: _headers);
       if (response.statusCode != 200) return [];
 
       final document = parse(response.body);
       final sources = <VideoSource>[];
-
-      // Tabela ze źródłami: .table-bordered tbody tr
       final rows = document.querySelectorAll('table.table-bordered tbody tr');
       
       for (var row in rows) {
@@ -130,11 +120,10 @@ class ZaluknijScraper extends BaseScraper {
         if (linkElement == null) continue;
 
         final iframeData = linkElement.attributes['data-iframe'];
-        final version = cells[2].text.trim(); // Lektor / Napisy
+        final version = cells[2].text.trim();
         final quality = cells.length > 3 ? cells[3].text.trim() : 'Auto';
         final hostName = linkElement.text.trim().toLowerCase();
 
-        // Rozszerzona czarna lista
         if (hostName.contains('voe') || 
             hostName.contains('savefiles') || 
             hostName.contains('ups2up') || 
@@ -154,13 +143,11 @@ class ZaluknijScraper extends BaseScraper {
           }
         }
 
-        // Jeśli nie ma w data-iframe, sprawdźmy href
         videoUrl ??= linkElement.attributes['href'];
 
         if (videoUrl != null && videoUrl.isNotEmpty) {
           if (videoUrl.startsWith('//')) videoUrl = 'https:$videoUrl';
           
-          // Dodatkowa weryfikacja URL
           final lowerUrl = videoUrl.toLowerCase();
           if (lowerUrl.contains('voe.sx') || lowerUrl.contains('savefiles') || 
               lowerUrl.contains('ups2up') || lowerUrl.contains('lulu') || 

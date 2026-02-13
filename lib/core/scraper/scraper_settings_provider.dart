@@ -26,7 +26,6 @@ class ScraperSettingsNotifier extends AsyncNotifier<ScraperSettings> {
       });
     }
 
-    // Domyślnie wszystkie wyłączone przy pierwszym uruchomieniu
     return ScraperSettings(enabledScrapers: {
       'Ekino-TV': false,
       'Obejrzyj.to': false,

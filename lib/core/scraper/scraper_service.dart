@@ -55,41 +55,27 @@ class ScraperService {
     
     String cleanTitle = title.split(':').first.trim();
     final query = cleanTitle;
-
-    debugPrint('Zetta Scraper: Szukam "$query" (typ: $type)');
-    debugPrint('Zetta Scraper: Wszystkie w kodzie: ${_scrapers.map((s) => s.name).join(', ')}');
-    debugPrint('Zetta Scraper: Stan enabledScrapers: ${settingsValue.enabledScrapers}');
-
     final activeScrapers = _scrapers.where((s) {
       final isEnabled = settingsValue.enabledScrapers[s.name] ?? false;
-      debugPrint('Zetta Scraper: Sprawdzam ${s.name} -> isEnabled: $isEnabled');
       return isEnabled;
     }).toList();
-
-    debugPrint('Zetta Scraper: Ostatecznie aktywne: ${activeScrapers.map((s) => s.name).join(', ')}');
 
     List<VideoSource> allSources = [];
 
     if (activeScrapers.isEmpty) {
-      debugPrint('Zetta Scraper: Brak aktywnych scraper\u00f3w w ustawieniach!');
       return [];
     }
 
     final results = await Future.wait(activeScrapers.map((scraper) async {
       try {
         final searchResults = await scraper.search(query, type);
-        debugPrint('Zetta Scraper: ${scraper.name} znalaz\u0142 ${searchResults.length} wynik\u00f3w wyszukiwania');
         
         if (searchResults.isNotEmpty) {
-          // Normalizacja dla lepszego por\u00f3wnania
           String normalize(String text) => text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s]'), '').trim();
           final normalizedQuery = normalize(query);
 
-          // Filtrowanie i szukanie najlepszego dopasowania
           final matches = searchResults.where((r) {
             final normalizedResult = normalize(r.title);
-            // Wynik musi zawierać ca\u0142ą frazę lub być identyczny
-            // Zapobiega to braniu "Making of Stranger Things" dla zapytania "Stranger Things"
             return normalizedResult == normalizedQuery || 
                    normalizedResult.startsWith('$normalizedQuery ') ||
                    normalizedResult.endsWith(' $normalizedQuery') ||
@@ -97,15 +83,12 @@ class ScraperService {
           }).toList();
 
           if (matches.isEmpty) {
-            debugPrint('Zetta Scraper: ${scraper.name} - brak wystarczaj\u0105co bliskiego dopasowania dla "$query"');
             return <VideoSource>[];
           }
 
-          // Wybieramy wynik najkr\u00f3tszy (zazwyczaj ten najbardziej bazowy)
           matches.sort((a, b) => a.title.length.compareTo(b.title.length));
           final bestMatch = matches.first;
 
-          debugPrint('Zetta Scraper: ${scraper.name} wybiera wynik: ${bestMatch.title}');
           return await scraper.getSources(bestMatch, season: season, episode: episode);
         }
       } catch (e) {
@@ -118,7 +101,6 @@ class ScraperService {
       allSources.addAll(sourceList);
     }
 
-    debugPrint('Zetta Scraper: Razem znaleziono ${allSources.length} źr\u00f3de\u0142');
     return allSources;
   }
 }

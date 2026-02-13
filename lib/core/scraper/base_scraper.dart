@@ -1,13 +1,8 @@
 import '../../features/home/domain/media_item.dart';
 
 abstract class BaseScraper {
-  String get name; // Nazwa serwisu np. "Filman"
-
-  // Metoda szukająca filmu/serialu w serwisie
-  // Zwraca listę URLi do podstron z wideo
+  String get name;
   Future<List<SearchResult>> search(String title, MediaType type);
-
-  // Metoda wyciągająca linki do wideo z konkretnej podstrony
   Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode});
 }
 
@@ -21,13 +16,13 @@ class SearchResult {
 
 class VideoSource {
   final String url;
-  final String title; // Tytuł ze strony źródłowej
-  final String quality; // np. "1080p", "720p"
-  final String sourceName; // Nazwa scrapera (np. Ekino-TV)
-  final Map<String, String>? headers; // Np. Referer, User-Agent
-  final bool isWebView; // Czy źródło wymaga otwarcia w WebView (np. trudny player)
-  final String? automationScript; // Opcjonalny skrypt JS do automatyzacji klikania
-  final List<SubtitleSource>? subtitles; // Napisy
+  final String title;
+  final String quality;
+  final String sourceName;
+  final Map<String, String>? headers;
+  final bool isWebView;
+  final String? automationScript;
+  final List<SubtitleSource>? subtitles;
 
   VideoSource({
     required this.url,
@@ -43,8 +38,8 @@ class VideoSource {
 
 class SubtitleSource {
   final String url;
-  final String label; // Np. "Polski", "English"
-  final String? language; // Np. "pl", "en"
+  final String label;
+  final String? language;
 
   SubtitleSource({
     required this.url,

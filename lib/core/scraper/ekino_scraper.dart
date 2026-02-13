@@ -56,13 +56,10 @@ class EkinoScraper extends BaseScraper {
     String originalUrl = result.url;
     String fetchUrl = originalUrl;
     
-    // Dla seriali budujemy link do konkretnego odcinka zgodnie z formatem Ekino
     if (season != null && episode != null) {
-      // Wyciągamy czysty slug - bierzemy część po /show/, ale przed ewentualnym ID lub końcowym /
       final pathParts = originalUrl.split('/show/').last.split('/');
       String slug = pathParts.first;
       
-      // Jeśli slug jest numeryczny (rzadkie, ale możliwe), spróbujmy wziąć drugą część
       if (RegExp(r'^\d+$').hasMatch(slug) && pathParts.length > 1) {
         slug = pathParts[1];
       }
@@ -73,7 +70,6 @@ class EkinoScraper extends BaseScraper {
     }
 
     try {
-      debugPrint('Ekino Scraper: Analiza strony -> $fetchUrl');
       final response = await http.get(Uri.parse(fetchUrl), headers: _headers);
       if (response.statusCode != 200) return [];
 
@@ -81,7 +77,6 @@ class EkinoScraper extends BaseScraper {
       final document = parse(body);
       final sources = <VideoSource>[];
 
-      // 1. Priorytet: Szukamy atrybutów data-id i data-name w elementach listy
       final playerElements = document.querySelectorAll('.players li, .player-item, [data-id]');
       for (var el in playerElements) {
         final id = el.attributes['data-id'];
@@ -105,7 +100,6 @@ class EkinoScraper extends BaseScraper {
         }
       }
 
-      // 2. Szukanie bezpośrednio w kodzie frazy ShowPlayer
       final showPlayerRegex = RegExp("ShowPlayer\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*,\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)", caseSensitive: false);
       final spMatches = showPlayerRegex.allMatches(body);
       for (var m in spMatches) {
@@ -127,7 +121,6 @@ class EkinoScraper extends BaseScraper {
         }
       }
 
-      // 3. Fallback: Jeśli nic nie znaleźliśmy, spróbujmy linku bypass dla sniffera
       if (sources.isEmpty) {
         String bypassUrl = fetchUrl.replaceFirst('/show/', '/watch/');
         sources.add(VideoSource(
@@ -139,7 +132,6 @@ class EkinoScraper extends BaseScraper {
         ));
       }
 
-      debugPrint('Ekino Scraper: Wynik końcowy -> ${sources.length} źródeł');
       return sources;
     } catch (e) {
       debugPrint('Ekino Scraper Error: $e');

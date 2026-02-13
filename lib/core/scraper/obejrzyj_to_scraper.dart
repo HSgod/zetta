@@ -132,8 +132,6 @@ class ObejrzyjToScraper extends BaseScraper {
   VideoSource _mapJsonToSource(dynamic v, int index) {
     final src = v['src'] ?? '';
     final quality = v['quality'] ?? 'Auto';
-    
-    // Zapewnienie unikalności URL dla historii
     final uniqueUrl = src.contains('#') ? src.split('#').first + '#$index' : '$src#$index';
 
     String hostName = 'Wideo';
@@ -218,14 +216,12 @@ class ObejrzyjToScraper extends BaseScraper {
           function run() {
             if (attempts++ > maxAttempts) return;
             
-            // Wycisz wszystko co si\u0119 da
             document.querySelectorAll('video, audio').forEach(v => { 
               v.muted = true; 
               v.volume = 0; 
               if (v.paused) v.play().catch(() => {});
             });
 
-            // Selektory przycisk\u00f3w play
             const selectors = [
               '.vjs-big-play-button', '.play-button', '#play', '.play_icon', 
               'button[aria-label="Play"]', '.jw-display-icon-container', 
@@ -241,7 +237,6 @@ class ObejrzyjToScraper extends BaseScraper {
               });
             });
 
-            // Klikni\u0119cie w \u015brodek ekranu (cz\u0119sto wymagane przez hosty)
             if (attempts % 10 === 0) {
               const center = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
               if (center) deepClick(center);
@@ -250,7 +245,6 @@ class ObejrzyjToScraper extends BaseScraper {
             setTimeout(run, 1000);
           }
           
-          // Blokuj wyskakuj\u0105ce okna
           window.open = function() { return { focus: function() {} }; };
           
           run();
