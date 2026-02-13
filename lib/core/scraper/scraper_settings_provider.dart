@@ -22,13 +22,15 @@ class ScraperSettingsNotifier extends AsyncNotifier<ScraperSettings> {
       return ScraperSettings(enabledScrapers: {
         'Ekino-TV': enabledList.contains('Ekino-TV'),
         'Obejrzyj.to': enabledList.contains('Obejrzyj.to'),
+        'Zaluknij.cc': enabledList.contains('Zaluknij.cc'),
       });
     }
 
-    // Domy\u015blnie wszystkie wy\u0142\u0105czone przy pierwszym uruchomieniu
+    // Domyślnie wszystkie wyłączone przy pierwszym uruchomieniu
     return ScraperSettings(enabledScrapers: {
       'Ekino-TV': false,
       'Obejrzyj.to': false,
+      'Zaluknij.cc': false,
     });
   }
 

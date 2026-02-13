@@ -30,10 +30,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _showControls = true;
-  bool _showWebViewDebug = false;
+  bool _showWebViewDebug = false; // Powrót do false
   bool _isExiting = false;
   Timer? _hideControlsTimer;
   Timer? _progressSaveTimer;
+  Timer? _watchdogTimer; // Watchdog dla zaciętego odtwarzania
   Timer? _timeoutTimer;
   
   String? _gestureType; 
@@ -96,15 +97,39 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       }
     }));
 
+    // Watchdog logic: detect stuck playback
+    _subscriptions.add(player.stream.position.listen((pos) {
+      if (!_isLoading && !_hasError && !_isExiting) {
+        if (pos.inMilliseconds > 0) {
+          _resetWatchdogTimer();
+        }
+      }
+    }));
+
     if (widget.args.videoUrl != null) {
       _startPlayback(widget.args.videoUrl!);
     }
+  }
+
+  void _resetWatchdogTimer() {
+    _watchdogTimer?.cancel();
+    _watchdogTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted && !_isLoading && !_isExiting && player.state.playing) {
+        // Jeśli film "gra" (playing=true), ale pozycja od 15s się nie zmienia
+        debugPrint("Zetta Player: Watchdog detected stuck playback!");
+        setState(() {
+          _hasError = true;
+        });
+        player.pause();
+      }
+    });
   }
 
   void _onLoadSuccess() {
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted && _isLoading && !_isExiting) {
         _timeoutTimer?.cancel();
+        _resetWatchdogTimer(); // Startujemy watchdog po załadowaniu
         setState(() {
           _isLoading = false;
           _hasError = false;
@@ -456,58 +481,61 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
             if (!_hasError && !_isExiting)
               Positioned.fill(
-                child: GestureDetector(
-                  onTap: _toggleControls,
-                  onDoubleTapDown: (details) => _onDoubleTapDown(details, MediaQuery.of(context).size.width),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (!_isLoading)
-                        Video(
-                          controller: controller,
-                          controls: NoVideoControls,
-                          fit: _videoFill,
-                        ),
-                      if (_gestureType != null) _buildGestureOverlay(),
-                      if (!_isLoading) _buildMD3Controls(context, padding),
-                      if (_isLoading)
-                        Container(
-                          color: Colors.black,
-                          child: const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircularProgressIndicator(color: Colors.white),
-                                SizedBox(height: 16),
-                                Text(
-                                  "Łączenie ze źródłem",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.5,
+                child: IgnorePointer(
+                  ignoring: _isLoading && _showWebViewDebug,
+                  child: GestureDetector(
+                    onTap: _toggleControls,
+                    onDoubleTapDown: (details) => _onDoubleTapDown(details, MediaQuery.of(context).size.width),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (!_isLoading)
+                          Video(
+                            controller: controller,
+                            controls: NoVideoControls,
+                            fit: _videoFill,
+                          ),
+                        if (_gestureType != null) _buildGestureOverlay(),
+                        if (!_isLoading) _buildMD3Controls(context, padding),
+                        if (_isLoading && !_showWebViewDebug)
+                          Container(
+                            color: Colors.black,
+                            child: const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(color: Colors.white),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    "Łączenie ze źródłem",
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      if (!_isLoading)
-                        StreamBuilder<bool>(
-                          stream: player.stream.buffering,
-                          builder: (context, snapshot) {
-                            if (snapshot.data == true) {
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                    ],
+                        if (!_isLoading)
+                          StreamBuilder<bool>(
+                            stream: player.stream.buffering,
+                            builder: (context, snapshot) {
+                              if (snapshot.data == true) {
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -761,7 +789,7 @@ class _VideoSnifferState extends State<VideoSniffer> {
     const mobileUA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
     const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
-    // Mixdrop / VOE dzia\u0142aj\u0105 lepiej na Desktop UA
+    // Mixdrop / VOE działają lepiej na Desktop UA
     String snifferUA = mobileUA;
     if (widget.initialUrl.contains('mixdrop') || widget.initialUrl.contains('voe')) {
       snifferUA = desktopUA;
@@ -888,10 +916,11 @@ class _VideoSnifferState extends State<VideoSniffer> {
         final reqUrl = resource.url.toString();
         bool isStream = reqUrl.contains('.m3u8') || reqUrl.contains('.mp4') || 
                         reqUrl.contains('/hls/') || reqUrl.contains('mxcontent.net') ||
-                        reqUrl.contains('mxdcontent.net') || reqUrl.contains('playlist.m3u8');
+                        reqUrl.contains('mxdcontent.net') || reqUrl.contains('playlist.m3u8') ||
+                        reqUrl.contains('/pass_md5/');
 
         if (isStream) {
-          if (reqUrl.contains('google.com') || reqUrl.contains('doubleclick')) return;
+          if (reqUrl.contains('google.com') || reqUrl.contains('doubleclick') || reqUrl.contains('adsystem')) return;
           debugPrint('Zetta Sniffer: Z\u0142apano stream -> $reqUrl');
           widget.onStreamCaught(reqUrl);
           controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));

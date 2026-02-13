@@ -5,6 +5,7 @@ import '../../features/home/domain/media_item.dart';
 import 'base_scraper.dart';
 import 'ekino_scraper.dart';
 import 'obejrzyj_to_scraper.dart';
+import 'zaluknij_scraper.dart';
 import 'scraper_settings_provider.dart';
 
 class ScraperService {
@@ -12,6 +13,7 @@ class ScraperService {
   final List<BaseScraper> _scrapers = [
     EkinoScraper(),
     ObejrzyjToScraper(),
+    ZaluknijScraper(),
   ];
 
   ScraperService(this._ref);
@@ -55,18 +57,18 @@ class ScraperService {
     final query = cleanTitle;
 
     debugPrint('Zetta Scraper: Szukam "$query" (typ: $type)');
+    debugPrint('Zetta Scraper: Wszystkie w kodzie: ${_scrapers.map((s) => s.name).join(', ')}');
+    debugPrint('Zetta Scraper: Stan enabledScrapers: ${settingsValue.enabledScrapers}');
 
-    List<VideoSource> allSources = [];
-    
     final activeScrapers = _scrapers.where((s) {
-      // Bardziej elastyczne dopasowanie nazwy z ustawień
-      final isEnabled = settingsValue.enabledScrapers.entries.any(
-        (e) => e.key.toLowerCase().contains(s.name.toLowerCase()) && e.value == true
-      );
+      final isEnabled = settingsValue.enabledScrapers[s.name] ?? false;
+      debugPrint('Zetta Scraper: Sprawdzam ${s.name} -> isEnabled: $isEnabled');
       return isEnabled;
     }).toList();
 
-    debugPrint('Zetta Scraper: Aktywne scrapery: ${activeScrapers.map((s) => s.name).join(', ')}');
+    debugPrint('Zetta Scraper: Ostatecznie aktywne: ${activeScrapers.map((s) => s.name).join(', ')}');
+
+    List<VideoSource> allSources = [];
 
     if (activeScrapers.isEmpty) {
       debugPrint('Zetta Scraper: Brak aktywnych scraper\u00f3w w ustawieniach!');
