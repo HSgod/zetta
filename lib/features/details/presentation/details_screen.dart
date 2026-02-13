@@ -439,9 +439,23 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           ),
         ),
       );
-      widgets.addAll(list.map((s) => _buildSourceTile(context, s, savedSource)));
+      
+      for (int i = 0; i < list.length; i++) {
+        final source = list[i];
+        final playerTitle = _formatPlayerTitle(source.title, i + 1);
+        widgets.add(_buildSourceTile(context, source, savedSource, displayTitle: playerTitle));
+      }
     });
     return widgets;
+  }
+
+  String _formatPlayerTitle(String title, int index) {
+    // Wyciągamy zawartość nawiasów (np. Lektor, Napisy)
+    final match = RegExp(r'\((.*?)\)').firstMatch(title);
+    if (match != null) {
+      return 'PLAYER $index (${match.group(1)})';
+    }
+    return 'PLAYER $index';
   }
 
   Widget _buildSeasonSelector() {
@@ -501,7 +515,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
   }
 
-  Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource) {
+  Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource, {String? displayTitle}) {
     bool isSuggested = false;
     if (savedSource != null) {
       // 1. Próbujemy dopasować po nazwie źródła i tytule (serwerze) - najbardziej stabilne
@@ -528,7 +542,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           side: isSuggested ? const BorderSide(color: Colors.greenAccent, width: 2) : BorderSide.none,
         ),
         leading: Icon(isSuggested ? Icons.play_circle_fill : Icons.play_arrow_rounded, color: isSuggested ? Colors.greenAccent : Colors.white),
-        title: Text(source.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(displayTitle ?? source.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         subtitle: Text(source.quality, style: const TextStyle(color: Colors.white54, fontSize: 12)),
         trailing: isSuggested 
             ? const Text('KONTYNUUJ', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))
