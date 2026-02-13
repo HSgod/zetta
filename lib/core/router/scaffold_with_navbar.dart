@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/home/presentation/providers/search_provider.dart';
 
-class ScaffoldWithNavBar extends StatelessWidget {
+class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const ScaffoldWithNavBar({
@@ -11,21 +15,48 @@ class ScaffoldWithNavBar extends StatelessWidget {
   }) : super(key: key ?? const ValueKey<String>('ScaffoldWithNavBar'));
 
   @override
+  ConsumerState<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
+}
+
+class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        ref.read(searchQueryProvider.notifier).update(query);
+        if (query.isNotEmpty && widget.navigationShell.currentIndex != 1) {
+          widget.navigationShell.goBranch(1);
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isWindows = Platform.isWindows;
+    
     return PopScope(
-      canPop: navigationShell.currentIndex == 0,
+      canPop: widget.navigationShell.currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (navigationShell.currentIndex != 0) {
-          navigationShell.goBranch(0);
+        if (widget.navigationShell.currentIndex != 0) {
+          widget.navigationShell.goBranch(0);
         }
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 640) {
+          if (constraints.maxWidth < 640 && !isWindows) {
             return Scaffold(
               extendBody: true,
-              body: navigationShell,
+              body: widget.navigationShell,
               bottomNavigationBar: RepaintBoundary(
                 child: Container(
                   height: 60,
@@ -64,65 +95,142 @@ class ScaffoldWithNavBar extends StatelessWidget {
               body: Row(
                 children: [
                   FocusTraversalGroup(
-                    child: RepaintBoundary(
-                      child: NavigationRail(
-                        selectedIndex: navigationShell.currentIndex,
-                        onDestinationSelected: (int index) => _onTap(context, index),
-                        labelType: NavigationRailLabelType.none,
-                        groupAlignment: 0.0,
-                        leading: Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            height: 40,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              Icons.movie_filter_rounded,
-                              size: 40,
-                              color: Theme.of(context).colorScheme.primary,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(right: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1))),
+                        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                      ),
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                          child: NavigationRail(
+                            extended: constraints.maxWidth > 1000 || isWindows,
+                            selectedIndex: isWindows && widget.navigationShell.currentIndex == 1 
+                                ? null 
+                                : (isWindows && widget.navigationShell.currentIndex > 1 
+                                    ? widget.navigationShell.currentIndex - 1 
+                                    : widget.navigationShell.currentIndex),
+                            onDestinationSelected: (int index) {
+                              int targetIndex = index;
+                              if (isWindows && index >= 1) {
+                                targetIndex = index + 1;
+                              }
+                              _onTap(context, targetIndex);
+                            },
+                            backgroundColor: Colors.transparent,
+                            labelType: (constraints.maxWidth > 1000 || isWindows) 
+                                ? NavigationRailLabelType.none 
+                                : NavigationRailLabelType.all,
+                            groupAlignment: -0.9,
+                            minExtendedWidth: 240,
+                            leading: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                                  child: Row(
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/logo.png',
+                                        height: 28,
+                                        errorBuilder: (context, error, stackTrace) => Icon(
+                                          Icons.movie_filter_rounded,
+                                          size: 28,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                      if (constraints.maxWidth > 1000 || isWindows) ...[
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'ZETTA',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.2,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                if (constraints.maxWidth > 1000 || isWindows)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    child: SizedBox(
+                                      width: 200,
+                                      height: 38,
+                                      child: TextField(
+                                        onChanged: _onSearchChanged,
+                                        style: const TextStyle(fontSize: 14),
+                                        decoration: InputDecoration(
+                                          hintText: 'Szukaj...',
+                                          hintStyle: const TextStyle(fontSize: 13),
+                                          prefixIcon: const Icon(Icons.search, size: 18),
+                                          filled: true,
+                                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                            borderSide: BorderSide.none,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
+                            unselectedIconTheme: IconThemeData(
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              size: 22,
+                            ),
+                            selectedIconTheme: IconThemeData(
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 24,
+                            ),
+                            unselectedLabelTextStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            selectedLabelTextStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            destinations: <NavigationRailDestination>[
+                              const NavigationRailDestination(
+                                icon: Icon(Icons.home_outlined),
+                                selectedIcon: Icon(Icons.home),
+                                label: Text('Start'),
+                              ),
+                              if (!isWindows) 
+                                const NavigationRailDestination(
+                                  icon: Icon(Icons.search_outlined),
+                                  selectedIcon: Icon(Icons.search),
+                                  label: Text('Szukaj'),
+                                ),
+                              const NavigationRailDestination(
+                                icon: Icon(Icons.explore_outlined),
+                                selectedIcon: Icon(Icons.explore),
+                                label: Text('Odkrywaj'),
+                              ),
+                              const NavigationRailDestination(
+                                icon: Icon(Icons.video_library_outlined),
+                                selectedIcon: Icon(Icons.video_library),
+                                label: Text('Biblioteka'),
+                              ),
+                              const NavigationRailDestination(
+                                icon: Icon(Icons.settings_outlined),
+                                selectedIcon: Icon(Icons.settings),
+                                label: Text('Ustawienia'),
+                              ),
+                            ],
                           ),
                         ),
-                        trailing: const SizedBox(height: 60),
-                        unselectedIconTheme: IconThemeData(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          size: 32,
-                        ),
-                        selectedIconTheme: IconThemeData(
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 36,
-                        ),
-                        destinations: const <NavigationRailDestination>[
-                          NavigationRailDestination(
-                            icon: Icon(Icons.home_outlined),
-                            selectedIcon: Icon(Icons.home),
-                            label: Text('Start'),
-                          ),
-                          NavigationRailDestination(
-                            icon: Icon(Icons.search_outlined),
-                            selectedIcon: Icon(Icons.search),
-                            label: Text('Szukaj'),
-                          ),
-                          NavigationRailDestination(
-                            icon: Icon(Icons.explore_outlined),
-                            selectedIcon: Icon(Icons.explore),
-                            label: Text('Odkrywaj'),
-                          ),
-                          NavigationRailDestination(
-                            icon: Icon(Icons.video_library_outlined),
-                            selectedIcon: Icon(Icons.video_library),
-                            label: Text('Biblioteka'),
-                          ),
-                          NavigationRailDestination(
-                            icon: Icon(Icons.settings_outlined),
-                            selectedIcon: Icon(Icons.settings),
-                            label: Text('Ustawienia'),
-                          ),
-                        ],
                       ),
                     ),
                   ),
-                  const VerticalDivider(thickness: 1, width: 1),
-                  Expanded(child: navigationShell),
+                  Expanded(child: widget.navigationShell),
                 ],
               ),
             );
@@ -133,14 +241,14 @@ class ScaffoldWithNavBar extends StatelessWidget {
   }
 
   void _onTap(BuildContext context, int index) {
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
   Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData selectedIcon) {
-    final isSelected = navigationShell.currentIndex == index;
+    final isSelected = widget.navigationShell.currentIndex == index;
     return InkWell(
       onTap: () => _onTap(context, index),
       borderRadius: BorderRadius.circular(20),

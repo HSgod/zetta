@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -232,19 +233,19 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               const SizedBox(height: 32),
               
               if (widget.item.type == MediaType.series) ...[
-                const Text('Sezony', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Sezony', style: TextStyle(color: Colors.white, fontSize: Platform.isWindows ? 16 : 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 _buildSeasonSelector(),
                 if (_episodes != null) ...[
                   const SizedBox(height: 24),
-                  const Text('Odcinki', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Odcinki', style: TextStyle(color: Colors.white, fontSize: Platform.isWindows ? 14 : 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   _buildEpisodeSelector(),
                 ],
                 const SizedBox(height: 32),
               ],
 
-              const Text('Dostępne źródła', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Dostępne źródła', style: TextStyle(color: Colors.white, fontSize: Platform.isWindows ? 16 : 18, fontWeight: FontWeight.bold)),
               const Divider(color: Colors.white24, height: 32),
               
               _buildSourcesSection(context, settingsAsync, savedSource),
@@ -295,6 +296,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   Widget _buildMainInfo(bool isFavorite) {
+    final isWindows = Platform.isWindows;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -304,11 +306,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             Expanded(
               child: Text(
                 widget.item.title, 
-                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                style: TextStyle(
+                  color: Colors.white, 
+                  fontSize: isWindows ? 26 : 32, 
+                  fontWeight: FontWeight.w900, 
+                  letterSpacing: -0.5
+                ),
               ),
             ),
             IconButton(
-              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.white, size: 28),
+              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.white, size: isWindows ? 24 : 28),
               onPressed: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
           ],
@@ -318,15 +325,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           children: [
             Text(
               widget.item.releaseDate?.split('-').first ?? "2024", 
-              style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
+              style: TextStyle(color: Colors.white70, fontSize: isWindows ? 14 : 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(width: 20),
             if (widget.item.rating != null) ...[
-              const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+              Icon(Icons.star_rounded, color: Colors.amber, size: isWindows ? 18 : 20),
               const SizedBox(width: 4),
               Text(
                 widget.item.rating!.toStringAsFixed(1), 
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: isWindows ? 14 : 16, fontWeight: FontWeight.bold),
               ),
             ],
             const SizedBox(width: 20),
@@ -338,7 +345,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               ),
               child: Text(
                 widget.item.type == MediaType.movie ? 'FILM' : 'SERIAL',
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white70, fontSize: isWindows ? 10 : 12, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -350,7 +357,12 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget _buildDescription() {
     return Text(
       widget.item.description ?? "Brak opisu", 
-      style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5, fontWeight: FontWeight.w400),
+      style: TextStyle(
+        color: Colors.white, 
+        fontSize: Platform.isWindows ? 13 : 15, 
+        height: 1.5, 
+        fontWeight: FontWeight.w400
+      ),
     );
   }
 

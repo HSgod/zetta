@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../home/presentation/providers/search_provider.dart';
@@ -29,12 +30,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(searchResultsProvider);
     final query = ref.watch(searchQueryProvider);
+    final isWindows = Platform.isWindows;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
+            if (!isWindows) Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SearchBar(
                 controller: _controller,
@@ -85,11 +87,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         }
                         return GridView.builder(
                           padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 160,
-                            mainAxisSpacing: 24,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.6,
+                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: isWindows ? 150 : 160,
+                            mainAxisSpacing: isWindows ? 20 : 24,
+                            crossAxisSpacing: isWindows ? 12 : 16,
+                            childAspectRatio: 0.62,
                           ),
                           itemCount: items.length,
                           itemBuilder: (context, index) {

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -20,94 +21,101 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                    (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final useMaterialYou = ref.watch(materialYouProvider);
     final useGestures = ref.watch(playerGesturesProvider);
+    final isWindows = Platform.isWindows;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            title: const Text('Ustawienia'),
-            centerTitle: true,
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: isWindows ? 800 : double.infinity),
+          child: CustomScrollView(
+            slivers: [
+              if (!isWindows) SliverAppBar(
+                floating: true,
+                pinned: true,
+                title: const Text('Ustawienia'),
+                centerTitle: true,
+              ),
+              if (isWindows) const SliverPadding(padding: EdgeInsets.only(top: 40)),
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader('Wygląd'),
+                    _buildSettingsCard([
+                      _buildSwitchTile(
+                        title: 'Tryb ciemny',
+                        subtitle: themeMode == ThemeMode.system ? 'Podążaj za systemem' : 'Zawsze włączony/wyłączony',
+                        icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                        value: isDark,
+                        onChanged: (val) => ref.read(themeModeProvider.notifier).setCheck(val),
+                      ),
+                      if (!isWindows) _buildSwitchTile(
+                        title: 'Material You',
+                        subtitle: 'Dynamiczne kolory z tapety (Android 12+)',
+                        icon: Icons.palette_rounded,
+                        value: useMaterialYou,
+                        onChanged: (val) => ref.read(materialYouProvider.notifier).toggle(),
+                      ),
+                    ]),
+
+                    _buildSectionHeader('Źródła'),
+                    _buildSettingsCard([
+                      _buildListTile(
+                        title: 'Wybór źródła',
+                        subtitle: 'Włącz lub wyłącz poszczególne serwisy',
+                        icon: Icons.source_rounded,
+                        onTap: () => context.push('/settings/scrapers'),
+                        trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                      ),
+                    ]),
+
+                    _buildSectionHeader('Odtwarzacz'),
+                    _buildSettingsCard([
+                      _buildSwitchTile(
+                        title: 'Gesty wideo',
+                        subtitle: 'Dwuklik aby przewijać o 10s',
+                        icon: Icons.gesture_rounded,
+                        value: useGestures,
+                        onChanged: (val) => ref.read(playerGesturesProvider.notifier).toggle(),
+                      ),
+                    ]),
+
+                    _buildSectionHeader('System'),
+                    _buildSettingsCard([
+                      _buildListTile(
+                        title: 'Wyczyść dane WebView',
+                        subtitle: 'Może rozwiązać problem z ładowaniem filmu',
+                        icon: Icons.delete_sweep_rounded,
+                        onTap: () => _showClearCacheDialog(context),
+                      ),
+                    ]),
+
+                    _buildSectionHeader('O aplikacji'),
+                    _buildSettingsCard([
+                      _buildListTile(
+                        title: 'Zetta v1.0.5',
+                        subtitle: 'Wersja stabilna',
+                        icon: Icons.verified_user_rounded,
+                      ),
+                      _buildListTile(
+                        title: 'Twórca',
+                        subtitle: 'HSgod',
+                        icon: Icons.terminal_rounded,
+                        onTap: () async {
+                          final url = Uri.parse('https://github.com/HSgod');
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                      ),
+                    ]),
+                    const SizedBox(height: 100),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader('Wygląd'),
-                _buildSettingsCard([
-                  _buildSwitchTile(
-                    title: 'Tryb ciemny',
-                    subtitle: themeMode == ThemeMode.system ? 'Podążaj za systemem' : 'Zawsze włączony/wyłączony',
-                    icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                    value: isDark,
-                    onChanged: (val) => ref.read(themeModeProvider.notifier).setCheck(val),
-                  ),
-                  _buildSwitchTile(
-                    title: 'Material You',
-                    subtitle: 'Dynamiczne kolory z tapety (Android 12+)',
-                    icon: Icons.palette_rounded,
-                    value: useMaterialYou,
-                    onChanged: (val) => ref.read(materialYouProvider.notifier).toggle(),
-                  ),
-                ]),
-
-                _buildSectionHeader('Źródła'),
-                _buildSettingsCard([
-                  _buildListTile(
-                    title: 'Wybór źródła',
-                    subtitle: 'Włącz lub wyłącz poszczególne serwisy',
-                    icon: Icons.source_rounded,
-                    onTap: () => context.push('/settings/scrapers'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                  ),
-                ]),
-
-                _buildSectionHeader('Odtwarzacz'),
-                _buildSettingsCard([
-                  _buildSwitchTile(
-                    title: 'Gesty wideo',
-                    subtitle: 'Dwuklik aby przewijać o 10s',
-                    icon: Icons.gesture_rounded,
-                    value: useGestures,
-                    onChanged: (val) => ref.read(playerGesturesProvider.notifier).toggle(),
-                  ),
-                ]),
-
-                _buildSectionHeader('System'),
-                _buildSettingsCard([
-                  _buildListTile(
-                    title: 'Wyczyść dane WebView',
-                    subtitle: 'Może rozwiązać problem z ładowaniem filmu',
-                    icon: Icons.delete_sweep_rounded,
-                    onTap: () => _showClearCacheDialog(context),
-                  ),
-                ]),
-
-                _buildSectionHeader('O aplikacji'),
-                _buildSettingsCard([
-                  _buildListTile(
-                    title: 'Zetta v1.0.5',
-                    subtitle: 'Wersja stabilna',
-                    icon: Icons.verified_user_rounded,
-                  ),
-                  _buildListTile(
-                    title: 'Twórca',
-                    subtitle: 'HSgod',
-                    icon: Icons.terminal_rounded,
-                    onTap: () async {
-                      final url = Uri.parse('https://github.com/HSgod');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                  ),
-                ]),
-                const SizedBox(height: 100),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -119,20 +127,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title.toUpperCase(),
         style: TextStyle(
           color: Theme.of(context).colorScheme.primary,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
+          letterSpacing: 1.1,
         ),
       ),
     );
   }
 
   Widget _buildSettingsCard(List<Widget> children) {
+    final isWindows = Platform.isWindows;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(isWindows ? 12 : 28),
       ),
       child: Column(children: children),
     );
@@ -148,10 +157,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      title: Text(title),
+      title: Text(title, style: const TextStyle(fontSize: 15)),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      secondary: Icon(icon),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      secondary: Icon(icon, size: 22),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
     );
   }
 
@@ -163,12 +172,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Widget? trailing,
   }) {
     return ListTile(
-      title: Text(title),
+      title: Text(title, style: const TextStyle(fontSize: 15)),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      leading: Icon(icon),
+      leading: Icon(icon, size: 22),
       trailing: trailing,
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
     );
   }
 

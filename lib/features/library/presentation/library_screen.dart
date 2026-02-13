@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/library_provider.dart';
@@ -42,41 +43,48 @@ class LibraryScreen extends ConsumerWidget {
     final favorites = ref.watch(favoritesProvider);
     final history = ref.watch(historyProvider);
     final continueWatching = ref.watch(continueWatchingProvider);
+    final isWindows = Platform.isWindows;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: isWindows ? null : AppBar(
         title: const Text('Moja biblioteka'),
         centerTitle: true,
       ),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildSection(
-            context,
-            title: 'Kontynuuj oglądanie',
-            items: continueWatching,
-            emptyMessage: 'Nie masz rozpoczętych seansów',
-            icon: Icons.play_circle_outline,
-            onLongPress: (item) => _showRemoveDialog(context, ref, item, 'continue'),
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: isWindows ? 1000 : double.infinity),
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              if (isWindows) const SliverPadding(padding: EdgeInsets.only(top: 40)),
+              _buildSection(
+                context,
+                title: 'Kontynuuj oglądanie',
+                items: continueWatching,
+                emptyMessage: 'Nie masz rozpoczętych seansów',
+                icon: Icons.play_circle_outline,
+                onLongPress: (item) => _showRemoveDialog(context, ref, item, 'continue'),
+              ),
+              _buildSection(
+                context,
+                title: 'Ulubione',
+                items: favorites,
+                emptyMessage: 'Twoja lista ulubionych jest pusta',
+                icon: Icons.favorite_border,
+                onLongPress: (item) => _showRemoveDialog(context, ref, item, 'favorites'),
+              ),
+              _buildSection(
+                context,
+                title: 'Ostatnio oglądane',
+                items: history,
+                emptyMessage: 'Brak historii oglądania',
+                icon: Icons.history,
+                onLongPress: (item) => _showRemoveDialog(context, ref, item, 'history'),
+              ),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+            ],
           ),
-          _buildSection(
-            context,
-            title: 'Ulubione',
-            items: favorites,
-            emptyMessage: 'Twoja lista ulubionych jest pusta',
-            icon: Icons.favorite_border,
-            onLongPress: (item) => _showRemoveDialog(context, ref, item, 'favorites'),
-          ),
-          _buildSection(
-            context,
-            title: 'Ostatnio oglądane',
-            items: history,
-            emptyMessage: 'Brak historii oglądania',
-            icon: Icons.history,
-            onLongPress: (item) => _showRemoveDialog(context, ref, item, 'history'),
-          ),
-          const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-        ],
+        ),
       ),
     );
   }
