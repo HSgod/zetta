@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -65,11 +66,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _initPlayer() async {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft, 
-      DeviceOrientation.landscapeRight
-    ]);
+    if (Platform.isAndroid || Platform.isIOS) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft, 
+        DeviceOrientation.landscapeRight
+      ]);
+    }
     WakelockPlus.enable(); // Blokuj wygaszanie ekranu
 
     player = Player();
@@ -81,6 +84,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       native.setProperty('http-proxy', ''); 
       native.setProperty('demuxer-lavf-o', 'protocol_whitelist=[file,rtp,tcp,udp,http,https,tls,tls_aes_128_gcm_sha256,tls_aes_256_gcm_sha384]');
       native.setProperty('tls-ca-file', ''); // Ignoruj systemowe CA je\u015bli s\u0105 przestarza\u0142e
+      
+      // Dodatkowe opcje stabilno\u015bci dla Windowsa
+      if (Platform.isWindows) {
+        native.setProperty('hwdec', 'no'); // Wy\u0142\u0105czamy hwdec dla testu stabilno\u015bci
+        native.setProperty('vo', 'gpu'); 
+        native.setProperty('gpu-context', 'd3d11');
+      }
     }
 
     controller = VideoController(player);

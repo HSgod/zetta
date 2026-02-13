@@ -52,7 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 pinned: false,
                 centerTitle: true,
                 title: Image.asset(
-                  'assets/images/logoapp.webp',
+                  'assets/images/logo.png',
                   height: 36,
                   errorBuilder: (context, error, stackTrace) => const Text('Zetta'),
                 ),

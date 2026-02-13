@@ -73,7 +73,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
                         leading: Padding(
                           padding: const EdgeInsets.only(top: 20),
                           child: Image.asset(
-                            'assets/images/logoapp.webp',
+                            'assets/images/logo.png',
                             height: 40,
                             errorBuilder: (context, error, stackTrace) => Icon(
                               Icons.movie_filter_rounded,

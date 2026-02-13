@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,25 +11,42 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
 Future<void> _clearAppCache() async {
-  try {
-    final tempDir = await getTemporaryDirectory();
-    if (tempDir.existsSync()) {
-      // Usuwamy zawartość asynchronicznie, aby nie blokować startu aplikacji
-      await tempDir.delete(recursive: true);
+  // Opóźniamy czyszczenie cache, aby nie konkurowało z zasobami przy starcie
+  Future.delayed(const Duration(seconds: 10), () async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (tempDir.existsSync()) {
+        // Na Windowsie getTemporaryDirectory często zwraca systemowy Temp.
+        // Bezpieczniej jest czyścić tylko pliki, do których mamy dostęp, 
+        // lub pominąć to, jeśli powoduje błędy.
+        final List<FileSystemEntity> entities = await tempDir.list().toList();
+        for (final entity in entities) {
+          try {
+            // Próbujemy usunąć tylko te pliki/foldery, które nie są zablokowane
+            // i które prawdopodobnie należą do naszej aplikacji (np. zawierające 'flutter' w nazwie)
+            if (entity.path.contains('flutter') || entity.path.contains('media_kit')) {
+               await entity.delete(recursive: true);
+            }
+          } catch (_) {
+            // Ignorujemy błędy dostępu do pojedynczych plików
+          }
+        }
+        debugPrint("Czyszczenie specyficznego cache zakończone.");
+      }
+    } catch (e) {
+      debugPrint("Błąd podczas czyszczenia cache: $e");
     }
-  } catch (e) {
-    debugPrint("Błąd podczas czyszczenia cache: $e");
-  }
+  });
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await dotenv.load(fileName: ".env");
-  MediaKit.ensureInitialized();
-  
-  // Czyścimy cache w tle po starcie, aby nie blokować ładowania danych
-  _clearAppCache();
+  // Ładowanie zmiennych środowiskowych i inicjalizacja MediaKit równolegle
+  await Future.wait([
+    dotenv.load(fileName: ".env"),
+    Future.sync(() => MediaKit.ensureInitialized()),
+  ]);
   
   final prefs = await SharedPreferences.getInstance();
 
@@ -40,6 +58,9 @@ void main() async {
       child: const ZettaApp(),
     ),
   );
+
+  // Czyścimy cache po uruchomieniu aplikacji i wyświetleniu UI
+  _clearAppCache();
 }
 
 class ZettaApp extends ConsumerWidget {

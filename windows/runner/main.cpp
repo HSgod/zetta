@@ -27,10 +27,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"zetta", origin, size)) {
+  if (!window.Create(L"Zetta", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
+
+  // Wymuś maksymalizację okna poprzez bezpośrednie wywołanie ShowWindow
+  ::ShowWindow(window.GetHandle(), SW_MAXIMIZE);
 
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {

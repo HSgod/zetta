@@ -35,7 +35,6 @@ dependencies:
   go_router: ^17.1.0
   media_kit: ^1.2.6
   media_kit_video: ^2.0.1
-  media_kit_libs_android_video: ^1.0.7
   http: ^1.6.0
   google_fonts: ^8.0.0
   flex_color_scheme: ^8.4.0
@@ -44,8 +43,8 @@ dependencies:
   shared_preferences: ^2.5.4
   html: ^0.15.6
   flutter_inappwebview: ^6.1.5
-  screen_brightness: ^2.1.7
   url_launcher: ^6.3.2
+  media_kit_libs_video: ^1.0.7
 
 dev_dependencies:
   flutter_test:
