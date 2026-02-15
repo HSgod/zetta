@@ -19,5 +19,23 @@ class MediaItem {
     this.releaseDate,
   });
 
-  // W przyszłości dodamy tu metodę zMap/toJson do integracji z API
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'posterUrl': posterUrl,
+    'description': description,
+    'rating': rating,
+    'type': type.index,
+    'releaseDate': releaseDate,
+  };
+
+  factory MediaItem.fromJson(Map<String, dynamic> json) => MediaItem(
+    id: json['id'],
+    title: json['title'],
+    posterUrl: json['posterUrl'],
+    description: json['description'],
+    rating: json['rating']?.toDouble(),
+    type: MediaType.values[json['type'] ?? 0],
+    releaseDate: json['releaseDate'],
+  );
 }

@@ -15,6 +15,7 @@ Zbudowana we Flutterze, z pełnym wsparciem dla **Android** oraz **Android TV**,
 - 📺 **Obsługa filmów i seriali**: Pełne wsparcie dla produkcji wieloodcinkowych z podziałem na sezony i listą odcinków.
 - 🔍 **Integracja z TMDB**: Dynamiczne pobieranie metadanych, trendów, opisów, ocen oraz plakatów w wysokiej rozdzielczości przy użyciu TMDB.
 - 🌟 **Własna biblioteka**: Twórz swoją bibliotekę, zakładki z ulubionymi filmami, z historią oglądania, a także z możliwością kontynuowania oglądania po czasie.
+- ⬇️ **Pobieranie filmów i seriali**: Możliwość pobrania każdego filmu/serialu i obejrzenie go w trybie offline.
 - 💬 **Napisy w odtwarzaczu**: Odtwarzacz sam pobiera napisy i umożliwia ich użycie, jeśli dany film/serial ma je wgrane do odtwarzacza.
 - 🎨 **Material 3 Expressive**: Nowoczesny interfejs z dynamicznymi kolorami.
 - 🌓 **Tryb Ciemny/Jasny**: Pełna obsługa motywów systemowych.
@@ -33,3 +34,6 @@ Zbudowana we Flutterze, z pełnym wsparciem dla **Android** oraz **Android TV**,
 - **Filman.cc** (w trakcie rozwoju)
 - **Zeriun.cc** (w trakcie rozwoju)
 - **CDA-HD.cc** (w trakcie rozwoju)
+
+##
+<a href="https://buymeacoffee.com/hsgod" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-green.png" alt="Buy Me A Coffee" width="185"></a>

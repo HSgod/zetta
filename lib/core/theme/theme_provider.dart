@@ -85,3 +85,19 @@ class PreferredQualityNotifier extends Notifier<String> {
 }
 
 final preferredQualityProvider = NotifierProvider<PreferredQualityNotifier, String>(PreferredQualityNotifier.new);
+
+// Provider dla reklam (Easter Egg)
+class AdsEnabledNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool('ads_enabled') ?? true;
+  }
+
+  void toggle() {
+    state = !state;
+    ref.read(sharedPreferencesProvider).setBool('ads_enabled', state);
+  }
+}
+
+final adsEnabledProvider = NotifierProvider<AdsEnabledNotifier, bool>(AdsEnabledNotifier.new);

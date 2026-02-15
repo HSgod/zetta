@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../../../core/ads/ad_config.dart';
 import '../../home/domain/media_item.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../library/presentation/providers/library_provider.dart';
@@ -27,6 +29,9 @@ class VideoPlayerScreen extends ConsumerStatefulWidget {
 class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   late final Player player;
   late final VideoController controller;
+  
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
   
   bool _isLoading = true;
   bool _hasError = false;
@@ -50,6 +55,25 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     super.initState();
     _initPlayer();
     _startTimeoutTimer();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: AdConfig.pauseBannerUnitId,
+      size: AdSize.mediumRectangle, // Rozmiar 300x250 - idealny na środek przy pauzie
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() => _isBannerAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          debugPrint('Błąd ładowania banera: $error');
+        },
+      ),
+    );
+    _bannerAd!.load();
   }
 
   void _startTimeoutTimer() {
@@ -209,6 +233,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       headers.addAll(widget.args.headers!);
     }
 
+    final isLocalFile = !streamUrl.startsWith('http');
+
     player.stop().then((_) {
       if (_isExiting) return;
       
@@ -220,7 +246,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       }
 
       player.open(
-        Media(streamUrl, httpHeaders: headers),
+        isLocalFile 
+          ? Media(streamUrl) 
+          : Media(streamUrl, httpHeaders: headers),
         play: true,
       ).then((_) {
         if (externalSubtitles.isNotEmpty) {
@@ -342,6 +370,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   @override
   void dispose() {
     WakelockPlus.disable();
+    _bannerAd?.dispose();
     if (!_isExiting) {
       _saveProgress();
       _hideControlsTimer?.cancel();
@@ -436,6 +465,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     if (_isExiting) return const Scaffold(backgroundColor: Colors.black);
     
     final padding = MediaQuery.of(context).padding;
+    final adsEnabled = ref.watch(adsEnabledProvider);
     
     return CallbackShortcuts(
       bindings: {
@@ -488,6 +518,36 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                           ),
                         if (_gestureType != null) _buildGestureOverlay(),
                         if (!_isLoading) _buildMD3Controls(context, padding),
+                        
+                        // REKLAMA NA PAUZIE
+                        if (adsEnabled && !_isLoading && _isBannerAdLoaded && _bannerAd != null)
+                          StreamBuilder<bool>(
+                            stream: player.stream.playing,
+                            builder: (context, snapshot) {
+                              final isPlaying = snapshot.data ?? player.state.playing;
+                              if (!isPlaying && _showControls) {
+                                return Center(
+                                  child: Container(
+                                    width: _bannerAd!.size.width.toDouble(),
+                                    height: _bannerAd!.size.height.toDouble(),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.5),
+                                          blurRadius: 20,
+                                        ),
+                                      ],
+                                    ),
+                                    child: AdWidget(ad: _bannerAd!),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+
                         if (_isLoading && !_showWebViewDebug)
                           Container(
                             color: Colors.black,

@@ -43,6 +43,11 @@ dependencies:
   flutter_inappwebview: ^6.1.5
   url_launcher: ^6.3.2
   media_kit_libs_video: ^1.0.7
+  google_mobile_ads: ^7.0.0
+  flutter_downloader: ^1.12.0
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  dio: ^5.9.1
 
 dev_dependencies:
   flutter_test:

@@ -5,10 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
 import '../../../core/scraper/scraper_settings_provider.dart';
+import '../../../core/ads/ad_service.dart';
+import '../../../core/ads/ad_config.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/domain/episode.dart';
 import '../../home/data/tmdb_service.dart';
 import '../../library/presentation/providers/library_provider.dart';
+import '../../library/presentation/providers/download_provider.dart';
 import '../../player/presentation/player_args.dart';
 import '../../player/presentation/video_player_screen.dart';
 import '../../settings/presentation/scraper_selection_screen.dart';
@@ -34,10 +38,12 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   List<Episode>? _episodes;
   int _totalSeasons = 0;
   bool _isLoadingTV = false;
+  bool _wasAdShown = false;
 
   @override
   void initState() {
     super.initState();
+    adService.loadInterstitialAd();
     if (widget.item.type == MediaType.series) {
       _loadTVDetails();
     } else {
@@ -555,25 +561,55 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         leading: Icon(isSuggested ? Icons.play_circle_fill : Icons.play_arrow_rounded, color: isSuggested ? Colors.greenAccent : Colors.white),
         title: Text(displayTitle ?? source.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         subtitle: Text(source.quality, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-        trailing: isSuggested 
-            ? const Text('KONTYNUUJ', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))
-            : const Icon(Icons.chevron_right, color: Colors.white30),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => VideoPlayerScreen(
-                args: PlayerArgs(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.download_for_offline_rounded, color: Colors.white70),
+              onPressed: () {
+                ref.read(downloadProvider.notifier).startDownload(
                   item: widget.item,
-                  initialUrl: source.url,
-                  sourceName: source.sourceName,
-                  title: source.title,
+                  url: source.url,
                   season: _selectedSeason,
                   episode: _selectedEpisode,
+                  headers: source.headers,
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Pobieranie rozpoczęte...'), duration: Duration(seconds: 2)),
+                );
+              },
+            ),
+            if (isSuggested) 
+                const Text('KONTYNUUJ', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))
+            else 
+                const Icon(Icons.chevron_right, color: Colors.white30),
+          ],
+        ),
+        onTap: () {
+          final adsEnabled = ref.read(adsEnabledProvider);
+          if (adsEnabled && !_wasAdShown && adService.isAdReady) {
+            adService.showInterstitialAd(
+              onAdDismissed: () {
+                setState(() => _wasAdShown = true);
+              },
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => VideoPlayerScreen(
+                  args: PlayerArgs(
+                    item: widget.item,
+                    initialUrl: source.url,
+                    sourceName: source.sourceName,
+                    title: source.title,
+                    season: _selectedSeason,
+                    episode: _selectedEpisode,
+                  ),
                 ),
               ),
-            ),
-          );
+            );
+          }
         },
       ),
     );

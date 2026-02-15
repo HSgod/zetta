@@ -14,6 +14,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  int _tapCount = 0;
+
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
@@ -21,6 +23,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                    (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final useMaterialYou = ref.watch(materialYouProvider);
     final useGestures = ref.watch(playerGesturesProvider);
+    final adsEnabled = ref.watch(adsEnabledProvider);
 
     return Scaffold(
       body: Center(
@@ -92,8 +95,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _buildSettingsCard([
                       _buildListTile(
                         title: 'Zetta v1.0.6',
-                        subtitle: 'Wersja stabilna',
+                        subtitle: adsEnabled ? 'Wersja stabilna' : 'Wersja stabilna (Ads Disabled)',
                         icon: Icons.verified_user_rounded,
+                        onTap: () {
+                          _tapCount++;
+                          if (_tapCount == 15) {
+                            ref.read(adsEnabledProvider.notifier).toggle();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(adsEnabled ? 'REKLAMY WYŁĄCZONE' : 'REKLAMY WŁĄCZONE'),
+                                backgroundColor: adsEnabled ? Colors.green : Colors.red,
+                              ),
+                            );
+                            _tapCount = 0;
+                          }
+                        },
+                      ),
+                      _buildListTile(
+                        title: 'Postaw mi kawę ☕',
+                        subtitle: 'Wesprzyj rozwój aplikacji',
+                        icon: Icons.coffee_rounded,
+                        onTap: () async {
+                          final url = Uri.parse('https://buymeacoffee.com/hsgod');
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
                       ),
                       _buildListTile(
                         title: 'Twórca',
