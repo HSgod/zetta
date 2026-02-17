@@ -50,7 +50,7 @@ void main() async {
     FlutterDownloader.initialize(debug: true, ignoreSsl: true),
   ]);
   
-  FlutterDownloader.registerCallback(DownloadNotifier.downloadCallback);
+  FlutterDownloader.registerCallback(downloadCallback);
   
   final prefs = await SharedPreferences.getInstance();
 

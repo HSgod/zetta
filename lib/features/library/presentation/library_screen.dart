@@ -97,8 +97,6 @@ class LibraryScreen extends ConsumerWidget {
   }
 
   Widget _buildDownloadsSection(BuildContext context, WidgetRef ref, List<dynamic> downloads) {
-    if (downloads.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-    
     final theme = Theme.of(context);
     return SliverToBoxAdapter(
       child: Padding(
@@ -129,7 +127,7 @@ class LibraryScreen extends ConsumerWidget {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Text(
-                        'Dostępne offline: ${downloads.length}',
+                        downloads.isEmpty ? 'Brak pobranych plików' : 'Dostępne offline: ${downloads.length}',
                         style: TextStyle(color: theme.colorScheme.primary.withOpacity(0.7), fontSize: 13),
                       ),
                     ],

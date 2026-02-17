@@ -55,8 +55,7 @@ class DownloadsListScreen extends ConsumerWidget {
                   ),
                   onTap: () {
                     if (isCompleted) {
-                      Navigator.push(
-                        context,
+                      Navigator.of(context, rootNavigator: true).push(
                         MaterialPageRoute(
                           builder: (_) => VideoPlayerScreen(
                             args: PlayerArgs(

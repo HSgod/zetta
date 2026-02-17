@@ -15,6 +15,7 @@ import '../../library/presentation/providers/library_provider.dart';
 import '../../library/presentation/providers/download_provider.dart';
 import '../../player/presentation/player_args.dart';
 import '../../player/presentation/video_player_screen.dart';
+import '../../player/presentation/video_sniffer.dart';
 import '../../settings/presentation/scraper_selection_screen.dart';
 
 final tmdbServiceProvider = Provider((ref) => TmdbService());
@@ -32,6 +33,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   List<VideoSource>? _sources;
   bool _isLoadingSources = false;
   String? _error;
+  VideoSource? _sniffingSource;
   
   int? _selectedSeason;
   int? _selectedEpisode;
@@ -149,6 +151,36 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
                 onPressed: () => Navigator.pop(context),
+              ),
+            ),
+
+          if (_sniffingSource != null)
+            Positioned.fill(
+              child: Offstage(
+                offstage: true, // Całkowicie niewidoczne
+                child: VideoSniffer(
+                  initialUrl: _sniffingSource!.url,
+                  headers: _sniffingSource!.headers,
+                  automationScript: _sniffingSource!.automationScript,
+                  onStreamCaught: (finalUrl) {
+                    final source = _sniffingSource!;
+                    setState(() => _sniffingSource = null);
+                    
+                    ref.read(downloadProvider.notifier).startDownload(
+                      item: widget.item,
+                      url: finalUrl,
+                      season: _selectedSeason,
+                      episode: _selectedEpisode,
+                      headers: source.headers,
+                    );
+                    
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Link rozwiązany! Pobieranie rozpoczęte.'), backgroundColor: Colors.green),
+                      );
+                    }
+                  },
+                ),
               ),
             ),
         ],
@@ -565,18 +597,28 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.download_for_offline_rounded, color: Colors.white70),
+              icon: Icon(
+                (_sniffingSource == source) ? Icons.hourglass_empty_rounded : Icons.download_for_offline_rounded, 
+                color: (_sniffingSource == source) ? Colors.amber : Colors.white70
+              ),
               onPressed: () {
-                ref.read(downloadProvider.notifier).startDownload(
-                  item: widget.item,
-                  url: source.url,
-                  season: _selectedSeason,
-                  episode: _selectedEpisode,
-                  headers: source.headers,
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pobieranie rozpoczęte...'), duration: Duration(seconds: 2)),
-                );
+                if (source.isWebView) {
+                  setState(() => _sniffingSource = source);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Przygotowywanie linku do pobrania...'), duration: Duration(seconds: 3)),
+                  );
+                } else {
+                  ref.read(downloadProvider.notifier).startDownload(
+                    item: widget.item,
+                    url: source.url,
+                    season: _selectedSeason,
+                    episode: _selectedEpisode,
+                    headers: source.headers,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pobieranie rozpoczęte...'), duration: Duration(seconds: 2)),
+                  );
+                }
               },
             ),
             if (isSuggested) 
@@ -594,8 +636,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               },
             );
           } else {
-            Navigator.push(
-              context,
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(
                 builder: (_) => VideoPlayerScreen(
                   args: PlayerArgs(

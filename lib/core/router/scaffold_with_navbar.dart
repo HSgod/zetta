@@ -101,117 +101,124 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                       child: ClipRect(
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                          child: NavigationRail(
-                            extended: constraints.maxWidth > 1000,
-                            selectedIndex: widget.navigationShell.currentIndex,
-                            onDestinationSelected: (int index) => _onTap(context, index),
-                            backgroundColor: Colors.transparent,
-                            labelType: constraints.maxWidth > 1000 
-                                ? NavigationRailLabelType.none 
-                                : NavigationRailLabelType.all,
-                            groupAlignment: -0.9,
-                            minExtendedWidth: 240,
-                            leading: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                                  child: Row(
+                          child: SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: IntrinsicHeight(
+                                child: NavigationRail(
+                                  extended: constraints.maxWidth > 1000,
+                                  selectedIndex: widget.navigationShell.currentIndex,
+                                  onDestinationSelected: (int index) => _onTap(context, index),
+                                  backgroundColor: Colors.transparent,
+                                  labelType: constraints.maxWidth > 1000 
+                                      ? NavigationRailLabelType.none 
+                                      : NavigationRailLabelType.all,
+                                  groupAlignment: -0.9,
+                                  minExtendedWidth: 240,
+                                  leading: Column(
                                     children: [
-                                      Image.asset(
-                                        'assets/images/logo.png',
-                                        height: 28,
-                                        errorBuilder: (context, error, stackTrace) => Icon(
-                                          Icons.movie_filter_rounded,
-                                          size: 28,
-                                          color: Theme.of(context).colorScheme.primary,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                                        child: Row(
+                                          children: [
+                                            Image.asset(
+                                              'assets/images/logo.png',
+                                              height: 28,
+                                              errorBuilder: (context, error, stackTrace) => Icon(
+                                                Icons.movie_filter_rounded,
+                                                size: 28,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                            ),
+                                            if (constraints.maxWidth > 1000) ...[
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                'ZETTA',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1.2,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ),
-                                      if (constraints.maxWidth > 1000) ...[
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          'ZETTA',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 1.2,
-                                            color: Theme.of(context).colorScheme.primary,
+                                      if (constraints.maxWidth > 1000)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          child: SizedBox(
+                                            width: 200,
+                                            height: 38,
+                                            child: TextField(
+                                              onChanged: _onSearchChanged,
+                                              style: const TextStyle(fontSize: 14),
+                                              decoration: InputDecoration(
+                                                hintText: 'Szukaj...',
+                                                hintStyle: const TextStyle(fontSize: 13),
+                                                prefixIcon: const Icon(Icons.search, size: 18),
+                                                filled: true,
+                                                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ],
                                     ],
                                   ),
-                                ),
-                                if (constraints.maxWidth > 1000)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    child: SizedBox(
-                                      width: 200,
-                                      height: 38,
-                                      child: TextField(
-                                        onChanged: _onSearchChanged,
-                                        style: const TextStyle(fontSize: 14),
-                                        decoration: InputDecoration(
-                                          hintText: 'Szukaj...',
-                                          hintStyle: const TextStyle(fontSize: 13),
-                                          prefixIcon: const Icon(Icons.search, size: 18),
-                                          filled: true,
-                                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                            borderSide: BorderSide.none,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                  unselectedIconTheme: IconThemeData(
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    size: 22,
                                   ),
-                              ],
-                            ),
-                            unselectedIconTheme: IconThemeData(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              size: 22,
-                            ),
-                            selectedIconTheme: IconThemeData(
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 24,
-                            ),
-                            unselectedLabelTextStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            selectedLabelTextStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            destinations: const <NavigationRailDestination>[
-                              NavigationRailDestination(
-                                icon: Icon(Icons.home_outlined),
-                                selectedIcon: Icon(Icons.home),
-                                label: Text('Start'),
+                                  selectedIconTheme: IconThemeData(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    size: 24,
+                                  ),
+                                  unselectedLabelTextStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  selectedLabelTextStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  destinations: const <NavigationRailDestination>[
+                                    NavigationRailDestination(
+                                      icon: Icon(Icons.home_outlined),
+                                      selectedIcon: Icon(Icons.home),
+                                      label: Text('Start'),
+                                    ),
+                                    NavigationRailDestination(
+                                      icon: Icon(Icons.search_outlined),
+                                      selectedIcon: Icon(Icons.search),
+                                      label: Text('Szukaj'),
+                                    ),
+                                    NavigationRailDestination(
+                                      icon: Icon(Icons.explore_outlined),
+                                      selectedIcon: Icon(Icons.explore),
+                                      label: Text('Odkrywaj'),
+                                    ),
+                                    NavigationRailDestination(
+                                      icon: Icon(Icons.video_library_outlined),
+                                      selectedIcon: Icon(Icons.video_library),
+                                      label: Text('Biblioteka'),
+                                    ),
+                                    NavigationRailDestination(
+                                      icon: Icon(Icons.settings_outlined),
+                                      selectedIcon: Icon(Icons.settings),
+                                      label: Text('Ustawienia'),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              NavigationRailDestination(
-                                icon: Icon(Icons.search_outlined),
-                                selectedIcon: Icon(Icons.search),
-                                label: Text('Szukaj'),
-                              ),
-                              NavigationRailDestination(
-                                icon: Icon(Icons.explore_outlined),
-                                selectedIcon: Icon(Icons.explore),
-                                label: Text('Odkrywaj'),
-                              ),
-                              NavigationRailDestination(
-                                icon: Icon(Icons.video_library_outlined),
-                                selectedIcon: Icon(Icons.video_library),
-                                label: Text('Biblioteka'),
-                              ),
-                              NavigationRailDestination(
-                                icon: Icon(Icons.settings_outlined),
-                                selectedIcon: Icon(Icons.settings),
-                                label: Text('Ustawienia'),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),

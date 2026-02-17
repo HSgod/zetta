@@ -7,9 +7,11 @@ class DownloadedItem {
   final String filePath;
   final String? taskId;
   final int progress;
-  final int status; // 0: pending, 1: running, 2: completed, 3: failed, 4: canceled
+  final int status; // 1: running, 3: completed, 4: failed, 5: paused
   final int? season;
   final int? episode;
+  final String? url; // Przechowujemy URL do wznowienia
+  final int lastSegment; // Dla HLS
 
   DownloadedItem({
     required this.mediaItem,
@@ -19,6 +21,8 @@ class DownloadedItem {
     this.status = 0,
     this.season,
     this.episode,
+    this.url,
+    this.lastSegment = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +33,8 @@ class DownloadedItem {
     'status': status,
     'season': season,
     'episode': episode,
+    'url': url,
+    'lastSegment': lastSegment,
   };
 
   factory DownloadedItem.fromJson(Map<String, dynamic> json) => DownloadedItem(
@@ -39,5 +45,7 @@ class DownloadedItem {
     status: json['status'] ?? 0,
     season: json['season'],
     episode: json['episode'],
+    url: json['url'],
+    lastSegment: json['lastSegment'] ?? 0,
   );
 }
