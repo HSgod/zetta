@@ -201,18 +201,18 @@ class _HeroBanner extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final bannerHeight = screenWidth > 900 ? 620.0 : 560.0;
     
-    // Parallax calculation
-    final double yOffset = (scrollOffset * 0.35).clamp(0.0, bannerHeight);
+    // Mathematically safe parallax to avoid any gaps or clipping
+    final double parallaxOffset = (scrollOffset * 0.15).clamp(0.0, 80.0);
 
     return Container(
       height: bannerHeight,
       width: double.infinity,
       child: Stack(
         children: [
-          // Background Backdrop image with Parallax
+          // Background Backdrop image with safe Parallax
           Positioned(
-            top: -yOffset,
-            bottom: yOffset - 40, // offset padding
+            top: -80.0 + parallaxOffset,
+            bottom: -80.0,
             left: 0,
             right: 0,
             child: heroItem.backdropUrl != null
