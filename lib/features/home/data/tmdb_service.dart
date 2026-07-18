@@ -165,6 +165,27 @@ class TmdbService {
     return null;
   }
 
+  Future<List<Map<String, dynamic>>> getCredits(String id, MediaType type) async {
+    final endpoint = type == MediaType.movie ? 'movie' : 'tv';
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/$endpoint/$id/credits?api_key=$_apiKey&language=pl-PL'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List cast = data['cast'] ?? [];
+        return cast.take(12).map((c) => {
+          'name': c['name'] ?? '',
+          'character': c['character'] ?? '',
+          'profileUrl': c['profile_path'] != null 
+              ? 'https://image.tmdb.org/t/p/w185${c['profile_path']}'
+              : null,
+        }).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   MediaItem _mapToMediaItem(Map<String, dynamic> json, {MediaType? type}) {
     final bool isMovie = type == MediaType.movie || (type == null && (json['media_type'] == 'movie' || json['title'] != null));
     return MediaItem(

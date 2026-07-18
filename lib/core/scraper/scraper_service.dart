@@ -25,7 +25,7 @@ class ScraperService {
 
     final List<Future<bool>> checks = _scrapers.map((scraper) async {
       try {
-        final searchResults = await scraper.search(cleanTitle, type);
+        final searchResults = await scraper.search(cleanTitle, type).timeout(const Duration(seconds: 8));
         return searchResults.any((r) => r.title.toLowerCase().contains(cleanTitle));
       } catch (e) {
         return false;
@@ -50,7 +50,13 @@ class ScraperService {
     return completer.future;
   }
 
-  Future<List<VideoSource>> findStream(String title, MediaType type, {int? season, int? episode}) async {
+  Future<List<VideoSource>> findStream(
+    String title, 
+    MediaType type, {
+    int? season, 
+    int? episode,
+    void Function(String scraperName, String status)? onProgress,
+  }) async {
     final settingsValue = await _ref.read(scraperSettingsProvider.future);
     
     String cleanTitle = title.split(':').first.trim();
@@ -67,32 +73,43 @@ class ScraperService {
     }
 
     final results = await Future.wait(activeScrapers.map((scraper) async {
+      onProgress?.call(scraper.name, 'szukanie');
       try {
-        final searchResults = await scraper.search(query, type);
-        
-        if (searchResults.isNotEmpty) {
-          String normalize(String text) => text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s]'), '').trim();
-          final normalizedQuery = normalize(query);
+        final sources = await (() async {
+          final searchResults = await scraper.search(query, type);
+          
+          if (searchResults.isNotEmpty) {
+            String normalize(String text) => text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s]'), '').trim();
+            final normalizedQuery = normalize(query);
 
-          final matches = searchResults.where((r) {
-            final normalizedResult = normalize(r.title);
-            return normalizedResult == normalizedQuery || 
-                   normalizedResult.startsWith('$normalizedQuery ') ||
-                   normalizedResult.endsWith(' $normalizedQuery') ||
-                   normalizedResult.contains(' $normalizedQuery ');
-          }).toList();
+            final matches = searchResults.where((r) {
+              final normalizedResult = normalize(r.title);
+              return normalizedResult == normalizedQuery || 
+                     normalizedResult.startsWith('$normalizedQuery ') ||
+                     normalizedResult.endsWith(' $normalizedQuery') ||
+                     normalizedResult.contains(' $normalizedQuery ');
+            }).toList();
 
-          if (matches.isEmpty) {
-            return <VideoSource>[];
+            if (matches.isEmpty) {
+              return <VideoSource>[];
+            }
+
+            matches.sort((a, b) => a.title.length.compareTo(b.title.length));
+            final bestMatch = matches.first;
+
+            return await scraper.getSources(bestMatch, season: season, episode: episode);
           }
-
-          matches.sort((a, b) => a.title.length.compareTo(b.title.length));
-          final bestMatch = matches.first;
-
-          return await scraper.getSources(bestMatch, season: season, episode: episode);
-        }
+          return <VideoSource>[];
+        })().timeout(const Duration(seconds: 12));
+        
+        onProgress?.call(scraper.name, sources.isNotEmpty ? 'znaleziono' : 'brak');
+        return sources;
+      } on TimeoutException catch (_) {
+        debugPrint('Zetta Scraper: Timeout (12s) przekroczony w ${scraper.name}');
+        onProgress?.call(scraper.name, 'timeout');
       } catch (e) {
-        debugPrint('Zetta Scraper: B\u0142\u0105d w ${scraper.name}: $e');
+        debugPrint('Zetta Scraper: Błąd w ${scraper.name}: $e');
+        onProgress?.call(scraper.name, 'błąd');
       }
       return <VideoSource>[];
     }));

@@ -42,15 +42,34 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   bool _isLoadingTV = false;
   String? _trailerKey;
   bool _isLoadingTrailer = false;
+  List<Map<String, dynamic>>? _cast;
+  bool _isLoadingCast = false;
+  final Map<String, String> _scraperProgress = {};
 
   @override
   void initState() {
     super.initState();
     _loadTrailer();
+    _loadCredits();
     if (widget.item.type == MediaType.series) {
       _loadTVDetails();
     } else {
       _fetchSources();
+    }
+  }
+
+  Future<void> _loadCredits() async {
+    setState(() => _isLoadingCast = true);
+    try {
+      final credits = await ref.read(tmdbServiceProvider).getCredits(widget.item.id, widget.item.type);
+      if (mounted) {
+        setState(() {
+          _cast = credits;
+          _isLoadingCast = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingCast = false);
     }
   }
 
@@ -105,6 +124,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       _isLoadingSources = true;
       _sources = null;
       _error = null;
+      _scraperProgress.clear();
     });
     
     try {
@@ -113,6 +133,13 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         widget.item.type,
         season: season,
         episode: episode,
+        onProgress: (scraperName, status) {
+          if (mounted) {
+            setState(() {
+              _scraperProgress[scraperName] = status;
+            });
+          }
+        },
       );
       if (mounted) {
         setState(() {
@@ -292,6 +319,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               _buildMainInfo(isFavorite),
               const SizedBox(height: 24),
               _buildDescription(),
+              if (_cast != null && _cast!.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _buildCastSection(),
+              ],
               const SizedBox(height: 32),
               
               if (widget.item.type == MediaType.series) ...[
@@ -363,6 +394,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               _buildMainInfo(isFavorite),
               const SizedBox(height: 20),
               _buildDescription(),
+              if (_cast != null && _cast!.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _buildCastSection(),
+              ],
               const SizedBox(height: 24),
               if (widget.item.type == MediaType.series) ...[
                 const Text('Sezony', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -499,7 +534,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         }
         
         if (_isLoadingSources) {
-          return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: Colors.red)));
+          return _buildScraperProgressWidget();
         } else if (_error != null) {
           return Center(child: Text('Błąd: $_error', style: const TextStyle(color: Colors.red)));
         } else if (_sources != null && _sources!.isNotEmpty) {
@@ -866,6 +901,152 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCastSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Obsada', 
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 115,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _cast!.length,
+            itemBuilder: (context, index) {
+              final actor = _cast![index];
+              return Container(
+                width: 80,
+                margin: const EdgeInsets.only(right: 12),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.white.withOpacity(0.08),
+                      backgroundImage: actor['profileUrl'] != null 
+                          ? NetworkImage(actor['profileUrl']) 
+                          : null,
+                      child: actor['profileUrl'] == null 
+                          ? const Icon(Icons.person, color: Colors.white54, size: 24)
+                          : null,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      actor['name'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      actor['character'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white38, fontSize: 9),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScraperProgressWidget() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Wyszukiwanie źródeł wideo...',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_scraperProgress.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Inicjalizacja scraperów...',
+                style: TextStyle(color: Colors.white38, fontSize: 13, fontStyle: FontStyle.italic),
+              ),
+            )
+          else
+            ..._scraperProgress.entries.map((entry) {
+              final scraperName = entry.key;
+              final status = entry.value;
+              
+              IconData statusIcon = Icons.hourglass_empty_rounded;
+              Color statusColor = Colors.white38;
+              String statusText = 'oczekiwanie';
+              
+              if (status == 'szukanie') {
+                statusIcon = Icons.search_rounded;
+                statusColor = Colors.amber;
+                statusText = 'szukanie...';
+              } else if (status == 'znaleziono') {
+                statusIcon = Icons.check_circle_rounded;
+                statusColor = Colors.greenAccent;
+                statusText = 'gotowe';
+              } else if (status == 'brak') {
+                statusIcon = Icons.cancel_rounded;
+                statusColor = Colors.white24;
+                statusText = 'brak wyników';
+              } else if (status == 'timeout') {
+                statusIcon = Icons.timer_off_rounded;
+                statusColor = Colors.redAccent;
+                statusText = 'limit czasu';
+              } else if (status == 'błąd') {
+                statusIcon = Icons.error_outline_rounded;
+                statusColor = Colors.redAccent;
+                statusText = 'błąd';
+              }
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10.0),
+                child: Row(
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 18),
+                    const SizedBox(width: 10),
+                    Text(
+                      scraperName.toUpperCase(),
+                      style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                    const Spacer(),
+                    Text(
+                      statusText,
+                      style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        ],
       ),
     );
   }
