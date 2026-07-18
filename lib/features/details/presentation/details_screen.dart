@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
 import '../../../core/scraper/scraper_settings_provider.dart';
@@ -38,14 +40,32 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   List<Episode>? _episodes;
   int _totalSeasons = 0;
   bool _isLoadingTV = false;
+  String? _trailerKey;
+  bool _isLoadingTrailer = false;
 
   @override
   void initState() {
     super.initState();
+    _loadTrailer();
     if (widget.item.type == MediaType.series) {
       _loadTVDetails();
     } else {
       _fetchSources();
+    }
+  }
+
+  Future<void> _loadTrailer() async {
+    setState(() => _isLoadingTrailer = true);
+    try {
+      final key = await ref.read(tmdbServiceProvider).getTrailerKey(widget.item.id, widget.item.type);
+      if (mounted) {
+        setState(() {
+          _trailerKey = key;
+          _isLoadingTrailer = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingTrailer = false);
     }
   }
 
@@ -125,19 +145,25 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     final screenSize = MediaQuery.of(context).size;
     final isTV = screenSize.width > 900;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // 1. Rozmyte tło (Backdrop)
-          _buildBackground(screenSize),
-
-          // 2. Główna zawartość
-          SafeArea(
-            child: isTV 
-              ? _buildTVLayout(context, isFavorite, savedSource, settingsAsync)
-              : _buildMobileLayout(context, isFavorite, savedSource, settingsAsync),
-          ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // 1. Rozmyte tło (Backdrop)
+            _buildBackground(screenSize),
+  
+            // 2. Główna zawartość
+            SafeArea(
+              child: isTV 
+                ? _buildTVLayout(context, isFavorite, savedSource, settingsAsync)
+                : _buildMobileLayout(context, isFavorite, savedSource, settingsAsync),
+            ),
           
           // Przycisk wstecz dla TV (w mobile mamy SliverAppBar ze strzałką)
           if (isTV)
@@ -181,16 +207,18 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBackground(Size size) {
+    final hasBackdrop = widget.item.backdropUrl != null;
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (widget.item.posterUrl != null)
+        if (hasBackdrop || widget.item.posterUrl != null)
           Image.network(
-            widget.item.posterUrl!,
+            hasBackdrop ? widget.item.backdropUrl! : widget.item.posterUrl!,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
@@ -278,7 +306,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 ],
                 const SizedBox(height: 32),
               ],
-
+              
+              if (_trailerKey != null) ...[
+                _buildTrailerButton(),
+                const SizedBox(height: 32),
+              ],
               const Text('Dostępne źródła', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               const Divider(color: Colors.white24, height: 32),
               
@@ -300,9 +332,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           pinned: true,
           backgroundColor: Colors.transparent,
           flexibleSpace: FlexibleSpaceBar(
-            background: widget.item.posterUrl != null 
-              ? Image.network(widget.item.posterUrl!, fit: BoxFit.cover)
-              : Container(color: Colors.grey[900]),
+            background: widget.item.backdropUrl != null 
+              ? Image.network(widget.item.backdropUrl!, fit: BoxFit.cover)
+              : (widget.item.posterUrl != null
+                  ? Image.network(widget.item.posterUrl!, fit: BoxFit.cover)
+                  : Container(color: Colors.grey[900])),
           ),
         ),
         SliverPadding(
@@ -316,6 +350,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               if (widget.item.type == MediaType.series) ...[
                 _buildSeasonSelector(),
                 if (_episodes != null) _buildEpisodeSelector(),
+                const SizedBox(height: 24),
+              ],
+              if (_trailerKey != null) ...[
+                _buildTrailerButton(),
                 const SizedBox(height: 24),
               ],
               const Text('Źródła', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
@@ -639,6 +677,48 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildTrailerButton() {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.withOpacity(0.3), width: 1.0),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            if (_trailerKey != null) {
+              final youtubeUrl = Uri.parse('https://www.youtube.com/watch?v=$_trailerKey');
+              if (await canLaunchUrl(youtubeUrl)) {
+                await launchUrl(youtubeUrl, mode: LaunchMode.externalApplication);
+              }
+            }
+          },
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.play_circle_fill_rounded, color: Colors.red, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Odtwórz zwiastun',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

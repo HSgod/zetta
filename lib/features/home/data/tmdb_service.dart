@@ -132,6 +132,39 @@ class TmdbService {
     }
   }
 
+  Future<String?> getTrailerKey(String id, MediaType type) async {
+    final endpoint = type == MediaType.movie ? 'movie' : 'tv';
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/$endpoint/$id/videos?api_key=$_apiKey&language=pl-PL'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List results = data['results'] ?? [];
+        final trailer = results.firstWhere(
+          (v) => v['site'] == 'YouTube' && v['type'] == 'Trailer',
+          orElse: () => null,
+        );
+        if (trailer != null) return trailer['key'];
+      }
+      
+      final engResponse = await http.get(
+        Uri.parse('$_baseUrl/$endpoint/$id/videos?api_key=$_apiKey'),
+      );
+      if (engResponse.statusCode == 200) {
+        final data = json.decode(engResponse.body);
+        final List results = data['results'] ?? [];
+        final trailer = results.firstWhere(
+          (v) => v['site'] == 'YouTube' && v['type'] == 'Trailer',
+          orElse: () => null,
+        );
+        if (trailer != null) return trailer['key'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
   MediaItem _mapToMediaItem(Map<String, dynamic> json, {MediaType? type}) {
     final bool isMovie = type == MediaType.movie || (type == null && (json['media_type'] == 'movie' || json['title'] != null));
     return MediaItem(
