@@ -9,6 +9,7 @@ class MediaItem {
   final double? rating;
   final MediaType type;
   final String? releaseDate;
+  final List<String>? genres;
 
   const MediaItem({
     required this.id,
@@ -19,6 +20,7 @@ class MediaItem {
     this.rating,
     required this.type,
     this.releaseDate,
+    this.genres,
   });
 
   Map<String, dynamic> toJson() => {
@@ -30,6 +32,7 @@ class MediaItem {
     'rating': rating,
     'type': type.index,
     'releaseDate': releaseDate,
+    'genres': genres,
   };
 
   factory MediaItem.fromJson(Map<String, dynamic> json) => MediaItem(
@@ -41,5 +44,6 @@ class MediaItem {
     rating: json['rating']?.toDouble(),
     type: MediaType.values[json['type'] ?? 0],
     releaseDate: json['releaseDate'],
+    genres: json['genres'] != null ? List<String>.from(json['genres']) : null,
   );
 }

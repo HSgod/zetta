@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,13 +32,20 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
-          title: const Text(
-            'Odkrywaj',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-            ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.explore_rounded, color: Colors.red, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Odkrywaj',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+              ),
+            ],
           ),
           centerTitle: true,
         ),
@@ -151,6 +157,27 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     return discoverData.when(
       data: (items) {
+        if (items.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.search_off_rounded, color: Colors.white24, size: 48),
+                    SizedBox(height: 16),
+                    Text(
+                      'Brak wyników dla wybranego gatunku',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white38, fontSize: 15),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
         return SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverGrid(

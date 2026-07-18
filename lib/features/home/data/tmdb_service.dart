@@ -186,8 +186,26 @@ class TmdbService {
     return [];
   }
 
+  static const Map<int, String> _genreNames = {
+    28: 'Akcja', 12: 'Przygodowy', 16: 'Animacja', 35: 'Komedia',
+    80: 'Kryminał', 99: 'Dokumentalny', 18: 'Dramat', 10751: 'Familijny',
+    14: 'Fantasy', 36: 'Historyczny', 27: 'Horror', 10402: 'Muzyczny',
+    9648: 'Tajemnica', 10749: 'Romans', 878: 'Sci-Fi', 10770: 'Film TV',
+    53: 'Thriller', 10752: 'Wojenny', 37: 'Western',
+    10759: 'Akcja i przygoda', 10762: 'Dla dzieci', 10763: 'Wiadomości',
+    10764: 'Reality', 10765: 'Sci-Fi i fantasy', 10766: 'Telenowela',
+    10767: 'Talk show', 10768: 'Polityczny',
+  };
+
   MediaItem _mapToMediaItem(Map<String, dynamic> json, {MediaType? type}) {
     final bool isMovie = type == MediaType.movie || (type == null && (json['media_type'] == 'movie' || json['title'] != null));
+    final List genreIds = json['genre_ids'] ?? [];
+    final List<String> genres = genreIds
+        .whereType<int>()
+        .map((id) => _genreNames[id])
+        .whereType<String>()
+        .take(3)
+        .toList();
     return MediaItem(
       id: json['id'].toString(),
       title: (isMovie ? json['title'] : json['name']) ?? 'Brak tytułu',
@@ -201,6 +219,7 @@ class TmdbService {
       rating: (json['vote_average'] as num?)?.toDouble(),
       type: isMovie ? MediaType.movie : MediaType.series,
       releaseDate: isMovie ? json['release_date'] : json['first_air_date'],
+      genres: genres.isNotEmpty ? genres : null,
     );
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,25 +81,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               Expanded(
                 child: query.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search,
-                              size: 64,
-                              color: Colors.white.withOpacity(0.2),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Znajdź swój ulubiony film',
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white60,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyState()
                     : searchResults.when(
                         data: (items) {
                           if (items.isEmpty) {
@@ -111,19 +92,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                             );
                           }
-                          return GridView.builder(
-                            padding: const EdgeInsets.all(16),
-                            physics: const BouncingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 160,
-                              mainAxisSpacing: 24,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.62,
+                          return AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: GridView.builder(
+                              key: ValueKey(items.length),
+                              padding: const EdgeInsets.all(16),
+                              physics: const BouncingScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 160,
+                                mainAxisSpacing: 24,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 0.62,
+                              ),
+                              itemCount: items.length,
+                              itemBuilder: (context, index) {
+                                return ExploreMediaCard(item: items[index]);
+                              },
                             ),
-                            itemCount: items.length,
-                            itemBuilder: (context, index) {
-                              return ExploreMediaCard(item: items[index]);
-                            },
                           );
                         },
                         loading: () => Center(
@@ -155,6 +140,62 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    const suggestions = ['Breaking Bad', 'Oppenheimer', 'Dune', 'Inception', 'The Bear'];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          const Text(
+            'Wyszukaj film lub serial',
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Wpisz tytuł w pole wyszukiwania powyżej',
+            style: TextStyle(color: Colors.white38, fontSize: 14),
+          ),
+          const SizedBox(height: 28),
+          const Text(
+            'POPULARNE',
+            style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: suggestions.map((title) {
+              return GestureDetector(
+                onTap: () {
+                  _controller.text = title;
+                  ref.read(searchQueryProvider.notifier).update(title);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.search_rounded, color: Colors.white38, size: 16),
+                      const SizedBox(width: 8),
+                      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }

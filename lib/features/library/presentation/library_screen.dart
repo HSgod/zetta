@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/library_provider.dart';
 import 'providers/download_provider.dart';
 import '../../home/presentation/widgets/media_card.dart';
@@ -64,13 +64,20 @@ class LibraryScreen extends ConsumerWidget {
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
-          title: const Text(
-            'Moja biblioteka',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-            ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.video_library_rounded, color: Colors.red, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Moja biblioteka',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+              ),
+            ],
           ),
           centerTitle: true,
         ),
@@ -211,7 +218,7 @@ class LibraryScreen extends ConsumerWidget {
             )
           else
             SizedBox(
-              height: 260,
+              height: 280,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -219,12 +226,16 @@ class LibraryScreen extends ConsumerWidget {
                 itemCount: items.length,
                 separatorBuilder: (context, index) => const SizedBox(width: 16),
                 itemBuilder: (context, index) {
+                  final item = items[index];
+                  final isResume = title == 'Kontynuuj oglądanie';
                   return SizedBox(
                     width: 150,
-                    child: MediaCard(
-                      item: items[index],
-                      onLongPress: onLongPress != null ? () => onLongPress(items[index]) : null,
-                    ),
+                    child: isResume
+                        ? _ProgressCard(item: item, onLongPress: onLongPress != null ? () => onLongPress(item) : null)
+                        : MediaCard(
+                            item: item,
+                            onLongPress: onLongPress != null ? () => onLongPress(item) : null,
+                          ),
                   );
                 },
               ),
@@ -233,7 +244,61 @@ class LibraryScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
+class _ProgressCard extends StatefulWidget {
+  final MediaItem item;
+  final VoidCallback? onLongPress;
+  const _ProgressCard({required this.item, this.onLongPress});
+
+  @override
+  State<_ProgressCard> createState() => _ProgressCardState();
+}
+
+class _ProgressCardState extends State<_ProgressCard> {
+  double? _progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgress();
   }
 
-  
+  Future<void> _loadProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final position = prefs.getInt('progress_${widget.item.id}') ?? 0;
+    final duration = prefs.getInt('duration_${widget.item.id}') ?? 0;
+    if (duration > 0 && mounted) {
+      setState(() {
+        _progress = (position / duration).clamp(0.0, 1.0);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        MediaCard(item: widget.item, onLongPress: widget.onLongPress),
+        if (_progress != null)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+              child: LinearProgressIndicator(
+                value: _progress,
+                minHeight: 4,
+                backgroundColor: Colors.white12,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}

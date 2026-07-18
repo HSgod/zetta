@@ -129,13 +129,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     );
                   },
-                  loading: () => Container(
-                    height: 520,
-                    color: Colors.black,
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Colors.red),
-                    ),
-                  ),
+                  loading: () => _BannerShimmer(),
                   error: (err, stack) => Container(
                     height: 200,
                     color: Colors.black,
@@ -324,18 +318,17 @@ class _HeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 
-                // Genre Tags Helper
-                Text(
-                  heroItem.type == MediaType.movie 
-                      ? 'Ekscytujący  •  Akcja  •  Sci-Fi  •  Kino' 
-                      : 'Wciągający  •  Dramat  •  Kryminał  •  Serial',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
+                // Genre Tags — real TMDB data or rating/year fallback
+                if (heroItem.genres != null && heroItem.genres!.isNotEmpty)
+                  Text(
+                    heroItem.genres!.join('  •  '),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 10),
                 
                 // Rating / Release Year
@@ -394,26 +387,9 @@ class _HeroBanner extends StatelessWidget {
                   ),
                 const SizedBox(height: 22),
                 
-                // SINGLE PLAY BUTTON (User requested one button)
-                ElevatedButton.icon(
+                // SINGLE PLAY BUTTON with scale animation
+                _AnimatedPlayButton(
                   onPressed: () => context.push('/details', extra: heroItem),
-                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 30),
-                  label: const Text(
-                    'Odtwórz',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 46, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -431,6 +407,84 @@ class _HeroBanner extends StatelessWidget {
           Icons.movie_creation_outlined,
           color: Colors.white30,
           size: 64,
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerShimmer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: -1.0, end: 2.0),
+      duration: const Duration(milliseconds: 1400),
+      curve: Curves.easeInOut,
+      builder: (context, value, child) {
+        return Container(
+          height: 520,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(value - 1, 0),
+              end: Alignment(value, 0),
+              colors: [
+                Colors.grey[900]!,
+                Colors.grey[850]!,
+                Colors.grey[900]!,
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedPlayButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  const _AnimatedPlayButton({required this.onPressed});
+
+  @override
+  State<_AnimatedPlayButton> createState() => _AnimatedPlayButtonState();
+}
+
+class _AnimatedPlayButtonState extends State<_AnimatedPlayButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onPressed();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 46, vertical: 13),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.play_arrow_rounded, color: Colors.black, size: 28),
+              SizedBox(width: 6),
+              Text(
+                'Odtwórz',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,13 +37,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   elevation: 0,
                   floating: true,
                   pinned: true,
-                  title: Text(
-                    'Ustawienia',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                    ),
+                  title: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.settings_rounded, color: Colors.red, size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Ustawienia',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ],
                   ),
                   centerTitle: true,
                 ),
@@ -142,24 +148,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return SwitchListTile(
-      value: value,
-      onChanged: onChanged,
-      title: Text(title, style: const TextStyle(fontSize: 15, color: Colors.white)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white60)),
-      secondary: Icon(icon, size: 22, color: value ? Colors.red : Colors.white60),
-      activeColor: Colors.red,
-      activeTrackColor: Colors.red.withOpacity(0.2),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-    );
-  }
 
   Widget _buildListTile({
     required String title,
