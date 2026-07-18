@@ -122,6 +122,9 @@ class ContinueWatchingNotifier extends Notifier<List<MediaItem>> {
     prefs.setStringList(_key, jsonList);
 
     prefs.remove('progress_$id');
+    prefs.remove('duration_$id');
+    prefs.remove('season_$id');
+    prefs.remove('episode_$id');
     // Usuwamy źródło przez dedykowany provider, aby odświeżyć UI
     ref.read(sourceHistoryProvider.notifier).removeSource(id);
   }
