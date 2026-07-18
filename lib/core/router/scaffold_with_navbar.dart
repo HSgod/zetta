@@ -94,13 +94,13 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                           child: Container(
                             color: Colors.black.withValues(alpha: 0.55),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded, 'Dom'),
-                                _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded, 'Szukaj'),
-                                _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded, 'Odkrywaj'),
-                                _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded, 'Biblioteka'),
-                                _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded, 'Ustawienia'),
+                                Expanded(child: _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded, 'Dom')),
+                                Expanded(child: _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded, 'Szukaj')),
+                                Expanded(child: _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded, 'Odkrywaj')),
+                                Expanded(child: _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded, 'Biblioteka')),
+                                Expanded(child: _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded, 'Ustawienia')),
                               ],
                             ),
                           ),
@@ -266,28 +266,24 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
 
   Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData selectedIcon, String label) {
     final isSelected = widget.navigationShell.currentIndex == index;
-    return InkWell(
+    return GestureDetector(
       onTap: () => _onTap(context, index),
-      borderRadius: BorderRadius.circular(20),
-      hoverColor: Colors.transparent,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.red.withValues(alpha: 0.12)
-              : Colors.transparent,
+          color: isSelected ? Colors.red.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? Colors.red.withValues(alpha: 0.25) : Colors.transparent,
             width: 1.0,
           ),
         ),
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Icon(
               isSelected ? selectedIcon : icon,
