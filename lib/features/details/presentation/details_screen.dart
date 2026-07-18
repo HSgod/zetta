@@ -328,15 +328,32 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       physics: const ClampingScrollPhysics(),
       slivers: [
         SliverAppBar(
-          expandedHeight: 300,
+          expandedHeight: 250,
           pinned: true,
           backgroundColor: Colors.transparent,
           flexibleSpace: FlexibleSpaceBar(
-            background: widget.item.backdropUrl != null 
-              ? Image.network(widget.item.backdropUrl!, fit: BoxFit.cover)
-              : (widget.item.posterUrl != null
-                  ? Image.network(widget.item.posterUrl!, fit: BoxFit.cover)
-                  : Container(color: Colors.grey[900])),
+            background: Stack(
+              fit: StackFit.expand,
+              children: [
+                widget.item.backdropUrl != null 
+                  ? Image.network(widget.item.backdropUrl!, fit: BoxFit.cover)
+                  : (widget.item.posterUrl != null
+                      ? Image.network(widget.item.posterUrl!, fit: BoxFit.cover)
+                      : Container(color: Colors.grey[900])),
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black,
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         SliverPadding(
@@ -348,8 +365,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               _buildDescription(),
               const SizedBox(height: 24),
               if (widget.item.type == MediaType.series) ...[
+                const Text('Sezony', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
                 _buildSeasonSelector(),
-                if (_episodes != null) _buildEpisodeSelector(),
+                if (_episodes != null) ...[
+                  const SizedBox(height: 16),
+                  const Text('Odcinki', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  _buildEpisodeSelector(),
+                ],
                 const SizedBox(height: 24),
               ],
               if (_trailerKey != null) ...[
@@ -379,7 +403,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 widget.item.title, 
                 style: const TextStyle(
                   color: Colors.white, 
-                  fontSize: 32, 
+                  fontSize: 28, 
                   fontWeight: FontWeight.w900, 
                   letterSpacing: -0.5
                 ),
@@ -394,29 +418,49 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              widget.item.releaseDate?.split('-').first ?? "2024", 
-              style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 20),
-            if (widget.item.rating != null) ...[
-              const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-              const SizedBox(width: 4),
-              Text(
-                widget.item.rating!.toStringAsFixed(1), 
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ],
-            const SizedBox(width: 20),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white30),
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                widget.item.releaseDate?.split('-').first ?? "2024", 
+                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (widget.item.rating != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.item.rating!.toStringAsFixed(1), 
+                      style: const TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.withOpacity(0.3), width: 1),
               ),
               child: Text(
                 widget.item.type == MediaType.movie ? 'FILM' : 'SERIAL',
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
               ),
             ),
           ],
@@ -426,13 +470,22 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   Widget _buildDescription() {
-    return Text(
-      widget.item.description ?? "Brak opisu", 
-      style: const TextStyle(
-        color: Colors.white, 
-        fontSize: 15, 
-        height: 1.5, 
-        fontWeight: FontWeight.w400
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+      ),
+      child: Text(
+        widget.item.description ?? "Brak opisu", 
+        style: const TextStyle(
+          color: Colors.white70, 
+          fontSize: 14, 
+          height: 1.5, 
+          fontWeight: FontWeight.w400
+        ),
       ),
     );
   }
@@ -543,7 +596,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildSeasonSelector() {
     return SizedBox(
-      height: 50,
+      height: 40,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _totalSeasons,
@@ -551,16 +604,31 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           final seasonNum = index + 1;
           final isSelected = _selectedSeason == seasonNum;
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ChoiceChip(
-              label: Text('SEZON $seasonNum'),
-              selected: isSelected,
-              onSelected: (val) => _loadEpisodes(seasonNum),
-              selectedColor: Colors.white,
-              backgroundColor: Colors.white10,
-              labelStyle: TextStyle(color: isSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              showCheckmark: false,
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => _loadEpisodes(seasonNum),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? Colors.white : Colors.white10,
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    'SEZON $seasonNum',
+                    style: TextStyle(
+                      color: isSelected ? Colors.black : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
             ),
           );
         },
@@ -570,7 +638,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   Widget _buildEpisodeSelector() {
     return SizedBox(
-      height: 50,
+      height: 40,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _episodes!.length,
@@ -578,19 +646,34 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           final ep = _episodes![index];
           final isSelected = _selectedEpisode == ep.episodeNumber;
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ChoiceChip(
-              label: Text('ODC. ${ep.episodeNumber}'),
-              selected: isSelected,
-              onSelected: (val) {
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
                 setState(() => _selectedEpisode = ep.episodeNumber);
                 _fetchSources(season: _selectedSeason, episode: ep.episodeNumber);
               },
-              selectedColor: Colors.redAccent,
-              backgroundColor: Colors.white10,
-              labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              showCheckmark: false,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.red : Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? Colors.red : Colors.white10,
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    'ODC. ${ep.episodeNumber}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
             ),
           );
         },
@@ -601,13 +684,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget _buildSourceTile(BuildContext context, VideoSource source, SavedSource? savedSource, {String? displayTitle}) {
     bool isSuggested = false;
     if (savedSource != null) {
-      // 1. Próbujemy dopasować po nazwie źródła i tytule (serwerze) - najbardziej stabilne
       if (savedSource.sourceName != null && savedSource.title != null) {
         isSuggested = source.sourceName == savedSource.sourceName && 
                      source.title == savedSource.title;
       }
-      
-      // 2. Jeśli nie dopasowano lub brak danych, próbujemy po URL (fallback)
       if (!isSuggested) {
         String cleanCurrent = source.url.split('?').first.replaceAll(RegExp(r'/$'), '');
         String cleanSaved = (savedSource.pageUrl ?? "").split('?').first.replaceAll(RegExp(r'/$'), '');
@@ -615,25 +695,76 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       }
     }
     
+    final accentColor = isSuggested ? Colors.greenAccent : Colors.red;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSuggested 
+            ? Colors.green.withOpacity(0.06) 
+            : Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSuggested 
+              ? Colors.greenAccent.withOpacity(0.4) 
+              : Colors.white.withOpacity(0.08),
+          width: 1.0,
+        ),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        tileColor: Colors.white.withOpacity(0.05),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: isSuggested ? const BorderSide(color: Colors.greenAccent, width: 2) : BorderSide.none,
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isSuggested 
+                ? Colors.greenAccent.withOpacity(0.1) 
+                : Colors.red.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isSuggested ? Icons.play_circle_fill : Icons.play_arrow_rounded, 
+            color: accentColor,
+            size: 20,
+          ),
         ),
-        leading: Icon(isSuggested ? Icons.play_circle_fill : Icons.play_arrow_rounded, color: isSuggested ? Colors.greenAccent : Colors.white),
-        title: Text(displayTitle ?? source.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Text(source.quality, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        title: Text(
+          displayTitle ?? source.title, 
+          style: const TextStyle(
+            color: Colors.white, 
+            fontWeight: FontWeight.bold, 
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  source.quality.toUpperCase(), 
+                  style: const TextStyle(
+                    color: Colors.white70, 
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               icon: Icon(
                 (_sniffingSource == source) ? Icons.hourglass_empty_rounded : Icons.download_for_offline_rounded, 
-                color: (_sniffingSource == source) ? Colors.amber : Colors.white70
+                color: (_sniffingSource == source) ? Colors.amber : Colors.white70,
+                size: 22,
               ),
               onPressed: () {
                 if (source.isWebView) {
@@ -655,10 +786,26 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 }
               },
             ),
-            if (isSuggested) 
-                const Text('KONTYNUUJ', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))
-            else 
-                const Icon(Icons.chevron_right, color: Colors.white30),
+            if (isSuggested) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'WZNÓW',
+                  style: TextStyle(
+                    color: Colors.greenAccent, 
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ] else 
+              const Icon(Icons.chevron_right, color: Colors.white30, size: 20),
           ],
         ),
         onTap: () {
