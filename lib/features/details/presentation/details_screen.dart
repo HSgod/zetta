@@ -540,7 +540,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         } else if (_sources != null && _sources!.isNotEmpty) {
           return Column(children: _buildGroupedSources(context, savedSource));
         } else if (_sources != null && _sources!.isEmpty) {
-          return const Center(child: Text('Nie znaleziono źródeł dla tego wyboru.', style: TextStyle(color: Colors.white30, fontSize: 16)));
+          return _buildScraperProgressWidget(noResults: true);
         } else {
           return const Center(child: Text('Wybierz odcinek, aby zobaczyć źródła', style: TextStyle(color: Colors.white30, fontSize: 16)));
         }
@@ -961,7 +961,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
   }
 
-  Widget _buildScraperProgressWidget() {
+  Widget _buildScraperProgressWidget({bool noResults = false}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -975,15 +975,22 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         children: [
           Row(
             children: [
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
-              ),
+              if (noResults)
+                const Icon(Icons.info_outline_rounded, color: Colors.white38, size: 18)
+              else
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
+                ),
               const SizedBox(width: 12),
-              const Text(
-                'Wyszukiwanie źródeł wideo...',
-                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+              Text(
+                noResults ? 'Brak dostępnych źródeł' : 'Wyszukiwanie źródeł wideo...',
+                style: TextStyle(
+                  color: noResults ? Colors.white38 : Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
