@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../domain/media_item.dart';
@@ -64,8 +65,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isWide = MediaQuery.of(context).size.width > 900;
     final trendingAsync = ref.watch(trendingProvider);
 
-    return PopScope(
-      canPop: false,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // White icons on Android
+        statusBarBrightness: Brightness.dark, // White icons on iOS
+      ),
+      child: PopScope(
+        canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         
@@ -182,8 +189,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _HeroBanner extends StatelessWidget {
