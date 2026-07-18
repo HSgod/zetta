@@ -56,32 +56,48 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
               extendBody: true,
               body: widget.navigationShell,
               bottomNavigationBar: RepaintBoundary(
-                child: Container(
-                  height: 60,
-                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
+                child: SafeArea(
+                  top: false,
+                  child: Container(
+                    height: 64,
+                    margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.12),
+                        width: 1.0,
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      color: Colors.black.withOpacity(0.95),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded),
-                          _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded),
-                          _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded),
-                          _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded),
-                          _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded),
-                        ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.08),
+                          blurRadius: 20,
+                          spreadRadius: -2,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(31),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: Container(
+                          color: Colors.black.withOpacity(0.55),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded),
+                              _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded),
+                              _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded),
+                              _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded),
+                              _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -249,14 +265,29 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
     return InkWell(
       onTap: () => _onTap(context, index),
       borderRadius: BorderRadius.circular(20),
-      child: Container(
+      hoverColor: Colors.transparent,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? Colors.red.withOpacity(0.12) 
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.red.withOpacity(0.25) : Colors.transparent,
+            width: 1.0,
+          ),
+        ),
         child: Icon(
           isSelected ? selectedIcon : icon,
-          size: 28,
+          size: 24,
           color: isSelected 
               ? Colors.red 
-              : Colors.white70,
+              : Colors.white.withOpacity(0.6),
         ),
       ),
     );
