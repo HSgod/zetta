@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../home/presentation/providers/search_provider.dart';
 import '../../home/presentation/widgets/explore_media_card.dart';
 
@@ -15,57 +13,11 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   late final TextEditingController _controller;
-  List<String> _searchHistory = [];
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: ref.read(searchQueryProvider));
-    _loadHistory();
-  }
-
-  Future<void> _loadHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyJson = prefs.getString('search_history');
-    if (historyJson != null) {
-      try {
-        final List<dynamic> decoded = jsonDecode(historyJson);
-        if (mounted) {
-          setState(() {
-            _searchHistory = decoded.cast<String>();
-          });
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }
-
-  Future<void> _addToHistory(String query) async {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _searchHistory.remove(trimmed);
-        _searchHistory.insert(0, trimmed);
-        if (_searchHistory.length > 8) {
-          _searchHistory = _searchHistory.sublist(0, 8);
-        }
-      });
-    }
-    await prefs.setString('search_history', jsonEncode(_searchHistory));
-  }
-
-  Future<void> _removeFromHistory(String query) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _searchHistory.remove(query);
-      });
-    }
-    await prefs.setString('search_history', jsonEncode(_searchHistory));
   }
 
   @override
@@ -78,12 +30,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(searchResultsProvider);
     final query = ref.watch(searchQueryProvider);
+    final searchHistory = ref.watch(searchHistoryProvider);
 
     ref.listen(searchResultsProvider, (previous, next) {
       if (next is AsyncData && !next.isLoading) {
         final currentQuery = ref.read(searchQueryProvider).trim();
         if (currentQuery.isNotEmpty) {
-          _addToHistory(currentQuery);
+          ref.read(searchHistoryProvider.notifier).addQuery(currentQuery);
         }
       }
     });
@@ -116,7 +69,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
                     onSubmitted: (value) {
                       if (value.trim().isNotEmpty) {
-                        _addToHistory(value.trim());
+                        ref.read(searchHistoryProvider.notifier).addQuery(value.trim());
                       }
                     },
                     style: const TextStyle(color: Colors.white, fontSize: 15),
@@ -142,7 +95,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               Expanded(
                 child: query.isEmpty
-                    ? _buildEmptyState()
+                    ? _buildEmptyState(searchHistory)
                     : searchResults.when(
                         data: (items) {
                           if (items.isEmpty) {
@@ -217,8 +170,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    if (_searchHistory.isNotEmpty) {
+  Widget _buildEmptyState(List<String> searchHistory) {
+    if (searchHistory.isNotEmpty) {
       return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
         child: Column(
@@ -243,12 +196,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: _searchHistory.map((historyQuery) {
+              children: searchHistory.map((historyQuery) {
                 return GestureDetector(
                   onTap: () {
                     _controller.text = historyQuery;
                     ref.read(searchQueryProvider.notifier).update(historyQuery);
-                    _addToHistory(historyQuery);
+                    ref.read(searchHistoryProvider.notifier).addQuery(historyQuery);
                   },
                   child: Container(
                     padding: const EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8),
@@ -265,7 +218,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         Text(historyQuery, style: const TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(width: 4),
                         GestureDetector(
-                          onTap: () => _removeFromHistory(historyQuery),
+                          onTap: () => ref.read(searchHistoryProvider.notifier).removeQuery(historyQuery),
                           child: const Padding(
                             padding: EdgeInsets.all(4.0),
                             child: Icon(Icons.close_rounded, color: Colors.white38, size: 16),
@@ -312,7 +265,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 onTap: () {
                   _controller.text = title;
                   ref.read(searchQueryProvider.notifier).update(title);
-                  _addToHistory(title);
+                  ref.read(searchHistoryProvider.notifier).addQuery(title);
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

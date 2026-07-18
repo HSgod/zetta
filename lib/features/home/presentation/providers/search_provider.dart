@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/tmdb_service.dart';
 import '../../domain/media_item.dart';
 import 'package:zetta/core/scraper/scraper_service.dart';
+import '../../../../core/theme/theme_provider.dart';
 
 final tmdbServiceProvider = Provider((ref) => TmdbService());
 
@@ -127,6 +129,49 @@ class SearchQueryNotifier extends Notifier<String> {
 }
 
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
+
+// Stan historii wyszukiwania (zaimplementowany jako Notifier dla Riverpod 3.x)
+class SearchHistoryNotifier extends Notifier<List<String>> {
+  static const _key = 'search_history';
+
+  @override
+  List<String> build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final historyJson = prefs.getString(_key);
+    if (historyJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(historyJson);
+        return decoded.cast<String>();
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<void> addQuery(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+
+    final prefs = ref.read(sharedPreferencesProvider);
+    final newList = [trimmed, ...state.where((q) => q != trimmed)].take(8).toList();
+    state = newList;
+    await prefs.setString(_key, jsonEncode(newList));
+  }
+
+  Future<void> removeQuery(String query) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final newList = state.where((q) => q != query).toList();
+    state = newList;
+    await prefs.setString(_key, jsonEncode(newList));
+  }
+
+  Future<void> clearHistory() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    state = [];
+    await prefs.remove(_key);
+  }
+}
+
+final searchHistoryProvider = NotifierProvider<SearchHistoryNotifier, List<String>>(SearchHistoryNotifier.new);
 
 // Provider wyników wyszukiwania
 

@@ -5,6 +5,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../home/presentation/providers/search_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -75,6 +76,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           subtitle: 'Może rozwiązać problem z ładowaniem filmu',
                           icon: Icons.delete_sweep_rounded,
                           onTap: () => _showClearCacheDialog(context),
+                        ),
+                        _buildListTile(
+                          title: 'Wyczyść historię wyszukiwania',
+                          subtitle: 'Może zwolnić miejsce i usunąć stare hasła',
+                          icon: Icons.history_rounded,
+                          onTap: () => _showClearSearchHistoryDialog(context),
                         ),
                         ListTile(
                           leading: const Icon(Icons.swipe_rounded, size: 22, color: Colors.white60),
@@ -209,6 +216,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Ciasteczka zostały wyczyszczone')),
+                );
+              }
+            },
+            child: const Text('Wyczyść', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearSearchHistoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF111111),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Wyczyścić historię?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Wszystkie zapytania z historii wyszukiwania zostaną bezpowrotnie usunięte.',
+          style: TextStyle(color: Colors.white60),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Anuluj', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(searchHistoryProvider.notifier).clearHistory();
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Historia wyszukiwania została wyczyszczona')),
                 );
               }
             },
