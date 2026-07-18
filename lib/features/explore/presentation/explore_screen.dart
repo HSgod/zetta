@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/ads/ad_service.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/presentation/providers/search_provider.dart';
@@ -19,15 +17,6 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   MediaType _selectedType = MediaType.movie;
   String? _selectedGenreId;
-  final Map<int, BannerAd> _adInstances = {};
-
-  @override
-  void dispose() {
-    for (var ad in _adInstances.values) {
-      ad.dispose();
-    }
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,31 +112,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget _buildCategoryGrid() {
     final genreId = _selectedGenreId != null ? int.tryParse(_selectedGenreId!) : null;
     final discoverData = ref.watch(discoverProvider((type: _selectedType, genreId: genreId)));
-    final adsEnabled = ref.watch(adsEnabledProvider);
 
     return discoverData.when(
       data: (items) {
-        if (!adsEnabled) {
-          return SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 160,
-                mainAxisSpacing: 24,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.62,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => MediaCard(item: items[index]),
-                childCount: items.length,
-              ),
-            ),
-          );
-        }
-
-        const adInterval = 10;
-        final totalCount = items.length + (items.length ~/ adInterval);
-
         return SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverGrid(
@@ -158,46 +125,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               childAspectRatio: 0.62,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if ((index + 1) % (adInterval + 1) == 0) {
-                  // Pozycja reklamy
-                  final adIndex = index;
-                  if (!_adInstances.containsKey(adIndex)) {
-                    _adInstances[adIndex] = adService.createListBannerAd();
-                  }
-                  
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        const Center(child: Icon(Icons.ads_click, color: Colors.white10, size: 40)),
-                        AdWidget(ad: _adInstances[adIndex]!),
-                        Positioned(
-                          top: 4, left: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text('AD', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                // Obliczanie realnego indeksu filmu (pomijając reklamy)
-                final itemIndex = index - (index ~/ (adInterval + 1));
-                if (itemIndex >= items.length) return null;
-                return MediaCard(item: items[itemIndex]);
-              },
-              childCount: totalCount,
+              (context, index) => MediaCard(item: items[index]),
+              childCount: items.length,
             ),
           ),
         );

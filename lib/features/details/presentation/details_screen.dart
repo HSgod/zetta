@@ -5,8 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
 import '../../../core/scraper/scraper_settings_provider.dart';
-import '../../../core/ads/ad_service.dart';
-import '../../../core/ads/ad_config.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/domain/episode.dart';
@@ -40,12 +38,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   List<Episode>? _episodes;
   int _totalSeasons = 0;
   bool _isLoadingTV = false;
-  bool _wasAdShown = false;
 
   @override
   void initState() {
     super.initState();
-    adService.loadInterstitialAd();
     if (widget.item.type == MediaType.series) {
       _loadTVDetails();
     } else {
@@ -628,29 +624,20 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           ],
         ),
         onTap: () {
-          final adsEnabled = ref.read(adsEnabledProvider);
-          if (adsEnabled && !_wasAdShown && adService.isAdReady) {
-            adService.showInterstitialAd(
-              onAdDismissed: () {
-                setState(() => _wasAdShown = true);
-              },
-            );
-          } else {
-            Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute(
-                builder: (_) => VideoPlayerScreen(
-                  args: PlayerArgs(
-                    item: widget.item,
-                    initialUrl: source.url,
-                    sourceName: source.sourceName,
-                    title: source.title,
-                    season: _selectedSeason,
-                    episode: _selectedEpisode,
-                  ),
+          Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => VideoPlayerScreen(
+                args: PlayerArgs(
+                  item: widget.item,
+                  initialUrl: source.url,
+                  sourceName: source.sourceName,
+                  title: source.title,
+                  season: _selectedSeason,
+                  episode: _selectedEpisode,
                 ),
               ),
-            );
-          }
+            ),
+          );
         },
       ),
     );

@@ -6,7 +6,6 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -46,7 +45,6 @@ void main() async {
   await Future.wait([
     dotenv.load(fileName: ".env"),
     Future.sync(() => MediaKit.ensureInitialized()),
-    MobileAds.instance.initialize(),
     FlutterDownloader.initialize(debug: true, ignoreSsl: true),
   ]);
   
