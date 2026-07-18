@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,113 +19,96 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark || 
-                   (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-    final useMaterialYou = ref.watch(materialYouProvider);
-    final useGestures = ref.watch(playerGesturesProvider);
-
-    return Scaffold(
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: double.infinity),
-          child: CustomScrollView(
-            slivers: [
-              const SliverAppBar(
-                floating: true,
-                pinned: true,
-                title: Text('Ustawienia'),
-                centerTitle: true,
-              ),
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Wygląd'),
-                    _buildSettingsCard([
-                      _buildSwitchTile(
-                        title: 'Tryb ciemny',
-                        subtitle: themeMode == ThemeMode.system ? 'Podążaj za systemem' : 'Zawsze włączony/wyłączony',
-                        icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                        value: isDark,
-                        onChanged: (val) => ref.read(themeModeProvider.notifier).setCheck(val),
-                      ),
-                      _buildSwitchTile(
-                        title: 'Material You',
-                        subtitle: 'Dynamiczne kolory z tapety (Android 12+)',
-                        icon: Icons.palette_rounded,
-                        value: useMaterialYou,
-                        onChanged: (val) => ref.read(materialYouProvider.notifier).toggle(),
-                      ),
-                    ]),
-
-                    _buildSectionHeader('Źródła'),
-                    _buildSettingsCard([
-                      _buildListTile(
-                        title: 'Wybór źródła',
-                        subtitle: 'Włącz lub wyłącz poszczególne serwisy',
-                        icon: Icons.source_rounded,
-                        onTap: () => context.push('/settings/scrapers'),
-                        trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                      ),
-                    ]),
-
-                    _buildSectionHeader('Odtwarzacz'),
-                    _buildSettingsCard([
-                      _buildSwitchTile(
-                        title: 'Gesty wideo',
-                        subtitle: 'Dwuklik aby przewijać o 10s',
-                        icon: Icons.gesture_rounded,
-                        value: useGestures,
-                        onChanged: (val) => ref.read(playerGesturesProvider.notifier).toggle(),
-                      ),
-                    ]),
-
-                    _buildSectionHeader('System'),
-                    _buildSettingsCard([
-                      _buildListTile(
-                        title: 'Wyczyść dane WebView',
-                        subtitle: 'Może rozwiązać problem z ładowaniem filmu',
-                        icon: Icons.delete_sweep_rounded,
-                        onTap: () => _showClearCacheDialog(context),
-                      ),
-                    ]),
-
-                    _buildSectionHeader('O aplikacji'),
-                    _buildSettingsCard([
-                      _buildListTile(
-                        title: 'Zetta v1.0.6',
-                        subtitle: 'Wersja stabilna',
-                        icon: Icons.verified_user_rounded,
-                      ),
-                      _buildListTile(
-                        title: 'Postaw mi kawę ☕',
-                        subtitle: 'Wesprzyj rozwój aplikacji',
-                        icon: Icons.coffee_rounded,
-                        onTap: () async {
-                          final url = Uri.parse('https://buymeacoffee.com/hsgod');
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                          }
-                        },
-                      ),
-                      _buildListTile(
-                        title: 'Twórca',
-                        subtitle: 'HSgod',
-                        icon: Icons.terminal_rounded,
-                        onTap: () async {
-                          final url = Uri.parse('https://github.com/HSgod');
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                          }
-                        },
-                      ),
-                    ]),
-                    const SizedBox(height: 100),
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: double.infinity),
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                const SliverAppBar(
+                  backgroundColor: Colors.black,
+                  elevation: 0,
+                  floating: true,
+                  pinned: true,
+                  title: Text(
+                    'Ustawienia',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                  centerTitle: true,
                 ),
-              ),
-            ],
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader('Źródła'),
+                      _buildSettingsCard([
+                        _buildListTile(
+                          title: 'Wybór źródła',
+                          subtitle: 'Włącz lub wyłącz poszczególne serwisy',
+                          icon: Icons.source_rounded,
+                          onTap: () => context.push('/settings/scrapers'),
+                          trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                        ),
+                      ]),
+
+                      _buildSectionHeader('System'),
+                      _buildSettingsCard([
+                        _buildListTile(
+                          title: 'Wyczyść dane WebView',
+                          subtitle: 'Może rozwiązać problem z ładowaniem filmu',
+                          icon: Icons.delete_sweep_rounded,
+                          onTap: () => _showClearCacheDialog(context),
+                        ),
+                      ]),
+
+                      _buildSectionHeader('O aplikacji'),
+                      _buildSettingsCard([
+                        _buildListTile(
+                          title: 'Zetta v1.0.6',
+                          subtitle: 'Wersja stabilna',
+                          icon: Icons.verified_user_rounded,
+                        ),
+                        _buildListTile(
+                          title: 'Postaw mi kawę ☕',
+                          subtitle: 'Wesprzyj rozwój aplikacji',
+                          icon: Icons.coffee_rounded,
+                          onTap: () async {
+                            final url = Uri.parse('https://buymeacoffee.com/hsgod');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                        _buildListTile(
+                          title: 'Twórca',
+                          subtitle: 'HSgod',
+                          icon: Icons.terminal_rounded,
+                          onTap: () async {
+                            final url = Uri.parse('https://github.com/HSgod');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                      ]),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -136,8 +120,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
+        style: const TextStyle(
+          color: Colors.red,
           fontSize: 11,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.1,
@@ -150,8 +134,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(28),
+        color: Colors.grey[950],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(children: children),
     );
@@ -167,9 +152,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      title: Text(title, style: const TextStyle(fontSize: 15)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      secondary: Icon(icon, size: 22),
+      title: Text(title, style: const TextStyle(fontSize: 15, color: Colors.white)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white60)),
+      secondary: Icon(icon, size: 22, color: value ? Colors.red : Colors.white60),
+      activeColor: Colors.red,
+      activeTrackColor: Colors.red.withOpacity(0.2),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
     );
   }
@@ -182,10 +169,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Widget? trailing,
   }) {
     return ListTile(
-      title: Text(title, style: const TextStyle(fontSize: 15)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      leading: Icon(icon, size: 22),
-      trailing: trailing,
+      title: Text(title, style: const TextStyle(fontSize: 15, color: Colors.white)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white60)),
+      leading: Icon(icon, size: 22, color: Colors.white60),
+      trailing: trailing ?? (onTap != null ? const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.white60) : null),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
     );

@@ -91,7 +91,7 @@ class ZettaApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light.copyWith(colorScheme: lightColorScheme),
           darkTheme: AppTheme.dark.copyWith(colorScheme: darkColorScheme),
-          themeMode: themeMode,
+          themeMode: ThemeMode.dark, // Force dark mode to prevent any light theme flashes
           routerConfig: appRouter,
         );
       },

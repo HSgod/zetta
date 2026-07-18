@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/presentation/providers/search_provider.dart';
 import '../../home/presentation/widgets/media_card.dart';
+import '../../home/presentation/widgets/explore_media_card.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -20,31 +22,48 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Odkrywaj'),
-        centerTitle: true,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
       ),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTypeSelector(),
-                _buildGenreSelector(),
-                Divider(
-                  height: 1, 
-                  indent: 20, 
-                  endIndent: 20, 
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
-                ),
-              ],
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          title: const Text(
+            'Odkrywaj',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
             ),
           ),
-          _buildCategoryGrid(),
-        ],
+          centerTitle: true,
+        ),
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTypeSelector(),
+                  _buildGenreSelector(),
+                  Divider(
+                    height: 1, 
+                    indent: 20, 
+                    endIndent: 20, 
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                ],
+              ),
+            ),
+            _buildCategoryGrid(),
+          ],
+        ),
       ),
     );
   }
@@ -90,18 +109,35 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Row(
         children: genres.entries.map((genre) {
           final isSelected = _selectedGenreId == genre.value;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(genre.key),
-              selected: isSelected,
-              onSelected: (val) => setState(() => _selectedGenreId = val ? genre.value : null),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              showCheckmark: false,
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedGenreId = isSelected ? null : genre.value),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.red : Colors.grey[950],
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? Colors.red : Colors.white.withOpacity(0.08),
+                    width: 1.0,
+                  ),
+                ),
+                child: Text(
+                  genre.key,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.white70,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
             ),
           );
         }).toList(),
@@ -125,14 +161,25 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               childAspectRatio: 0.62,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, index) => MediaCard(item: items[index]),
+              (context, index) => ExploreMediaCard(item: items[index]),
               childCount: items.length,
             ),
           ),
         );
       },
-      loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-      error: (err, _) => SliverFillRemaining(child: Center(child: Text('Błąd: $err'))),
+      loading: () => const SliverFillRemaining(
+        child: Center(
+          child: CircularProgressIndicator(color: Colors.red),
+        ),
+      ),
+      error: (err, _) => SliverFillRemaining(
+        child: Center(
+          child: Text(
+            'Błąd: $err',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -150,7 +197,6 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return InkWell(
       onTap: onSelected,
       borderRadius: BorderRadius.circular(20),
@@ -158,13 +204,17 @@ class _TypeChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHigh,
+          color: isSelected ? Colors.red : Colors.grey[900],
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.red : Colors.white.withOpacity(0.08),
+            width: 1.0,
+          ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+            color: isSelected ? Colors.white : Colors.white70,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -172,3 +222,5 @@ class _TypeChip extends StatelessWidget {
     );
   }
 }
+
+
