@@ -259,6 +259,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final duration = player.state.duration.inSeconds;
 
     await prefs.setInt(key, position);
+    await prefs.setInt('duration_$_storageId', duration);
 
     if (duration > 0 && position > duration * 0.9) {
       ref.read(continueWatchingProvider.notifier).removeFromContinue(widget.args.item.id);

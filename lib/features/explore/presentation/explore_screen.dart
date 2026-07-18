@@ -15,6 +15,26 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   MediaType _selectedType = MediaType.movie;
   String? _selectedGenreId;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final genreId = _selectedGenreId != null ? int.tryParse(_selectedGenreId!) : null;
+      ref.read(discoverProvider((type: _selectedType, genreId: genreId)).notifier).loadMore();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +67,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           centerTitle: true,
         ),
         body: CustomScrollView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
@@ -159,32 +180,54 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildCategoryGrid() {
     final genreId = _selectedGenreId != null ? int.tryParse(_selectedGenreId!) : null;
-    final discoverData = ref.watch(discoverProvider((type: _selectedType, genreId: genreId)));
+    final discoverState = ref.watch(discoverProvider((type: _selectedType, genreId: genreId)));
     final key = ValueKey('$_selectedType-$_selectedGenreId');
 
-    return discoverData.when(
-      data: (items) {
-        if (items.isEmpty) {
-          return Container(
-            key: key,
-            padding: const EdgeInsets.all(48),
-            alignment: Alignment.center,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.search_off_rounded, color: Colors.white24, size: 48),
-                SizedBox(height: 16),
-                Text(
-                  'Brak wyników dla wybranego gatunku',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white38, fontSize: 15),
-                ),
-              ],
+    if (discoverState.error != null && discoverState.items.isEmpty) {
+      return Container(
+        key: key,
+        padding: const EdgeInsets.all(48),
+        alignment: Alignment.center,
+        child: Text(
+          'Błąd: ${discoverState.error}',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    if (discoverState.isLoading && discoverState.items.isEmpty) {
+      return Container(
+        key: key,
+        padding: const EdgeInsets.all(48),
+        alignment: Alignment.center,
+        child: const CircularProgressIndicator(color: Colors.red),
+      );
+    }
+
+    if (discoverState.items.isEmpty) {
+      return Container(
+        key: key,
+        padding: const EdgeInsets.all(48),
+        alignment: Alignment.center,
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded, color: Colors.white24, size: 48),
+            SizedBox(height: 16),
+            Text(
+              'Brak wyników dla wybranego gatunku',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 15),
             ),
-          );
-        }
-        return GridView.builder(
-          key: key,
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      key: key,
+      children: [
+        GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
@@ -194,7 +237,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             crossAxisSpacing: 16,
             childAspectRatio: 0.62,
           ),
-          itemCount: items.length,
+          itemCount: discoverState.items.length,
           itemBuilder: (context, index) {
             return TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
@@ -207,26 +250,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   child: child,
                 ),
               ),
-              child: ExploreMediaCard(item: items[index]),
+              child: ExploreMediaCard(item: discoverState.items[index]),
             );
           },
-        );
-      },
-      loading: () => Container(
-        key: key,
-        padding: const EdgeInsets.all(48),
-        alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: Colors.red),
-      ),
-      error: (err, _) => Container(
-        key: key,
-        padding: const EdgeInsets.all(48),
-        alignment: Alignment.center,
-        child: Text(
-          'Błąd: $err',
-          style: const TextStyle(color: Colors.red),
         ),
-      ),
+        if (discoverState.isLoading && discoverState.items.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator(color: Colors.red)),
+          ),
+      ],
     );
   }
 }

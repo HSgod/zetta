@@ -94,16 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification is ScrollUpdateNotification) {
-              setState(() {
-                _scrollOffset = _scrollController.offset;
-              });
-            }
-            return true;
-          },
-          child: CustomScrollView(
+        body: CustomScrollView(
             controller: _scrollController,
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -208,9 +199,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _HeroBanner extends StatelessWidget {

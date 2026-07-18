@@ -11,7 +11,10 @@ class MediaCard extends ConsumerStatefulWidget {
     super.key, 
     required this.item,
     this.onLongPress,
+    this.subtitle,
   });
+
+  final String? subtitle;
 
   @override
   ConsumerState<MediaCard> createState() => _MediaCardState();
@@ -128,6 +131,14 @@ class _MediaCardState extends ConsumerState<MediaCard> {
                             style: const TextStyle(
                               color: Colors.white60,
                               fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                            ),
+                          ),
+                        if (widget.subtitle != null)
+                          Text(
+                            widget.subtitle!,
+                            style: const TextStyle(
+                              color: Colors.white38,
                               fontSize: 11,
                             ),
                           ),

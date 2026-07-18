@@ -267,6 +267,8 @@ class _ProgressCard extends StatefulWidget {
 
 class _ProgressCardState extends State<_ProgressCard> {
   double? _progress;
+  int? _season;
+  int? _episode;
 
   @override
   void initState() {
@@ -278,9 +280,16 @@ class _ProgressCardState extends State<_ProgressCard> {
     final prefs = await SharedPreferences.getInstance();
     final position = prefs.getInt('progress_${widget.item.id}') ?? 0;
     final duration = prefs.getInt('duration_${widget.item.id}') ?? 0;
-    if (duration > 0 && mounted) {
+    final season = prefs.getInt('season_${widget.item.id}');
+    final episode = prefs.getInt('episode_${widget.item.id}');
+    
+    if (mounted) {
       setState(() {
-        _progress = (position / duration).clamp(0.0, 1.0);
+        if (duration > 0) {
+          _progress = (position / duration).clamp(0.0, 1.0);
+        }
+        _season = season;
+        _episode = episode;
       });
     }
   }
@@ -289,7 +298,13 @@ class _ProgressCardState extends State<_ProgressCard> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        MediaCard(item: widget.item, onLongPress: widget.onLongPress),
+        MediaCard(
+          item: widget.item, 
+          onLongPress: widget.onLongPress,
+          subtitle: (_season != null && _episode != null) 
+              ? 'S${_season!.toString().padLeft(2, '0')} E${_episode!.toString().padLeft(2, '0')}' 
+              : null,
+        ),
         if (_progress != null)
           Positioned(
             bottom: 0,

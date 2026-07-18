@@ -660,8 +660,64 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   Widget _buildEpisodeSelector() {
+    final bool hasLongNames = _episodes!.any((ep) => ep.name.length > 15);
+
+    if (hasLongNames) {
+      return Column(
+        children: _episodes!.map((ep) {
+          final isSelected = _selectedEpisode == ep.episodeNumber;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _selectedEpisode = ep.episodeNumber);
+                _fetchSources(season: _selectedSeason, episode: ep.episodeNumber);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? Colors.red : Colors.white10,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${ep.episodeNumber}.',
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ep.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+
     return SizedBox(
-      height: 40,
+      height: 60,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _episodes!.length,
@@ -677,7 +733,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                constraints: const BoxConstraints(minWidth: 120),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
@@ -686,15 +743,29 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     width: 1,
                   ),
                 ),
-                child: Center(
-                  child: Text(
-                    'ODC. ${ep.episodeNumber}',
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white70,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${ep.episodeNumber}.',
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ep.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

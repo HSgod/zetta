@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/theme_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -74,6 +75,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           subtitle: 'Może rozwiązać problem z ładowaniem filmu',
                           icon: Icons.delete_sweep_rounded,
                           onTap: () => _showClearCacheDialog(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.swipe_rounded, size: 22, color: Colors.white60),
+                          title: const Text('Gesty odtwarzacza', style: TextStyle(fontSize: 15, color: Colors.white)),
+                          subtitle: const Text('Przesuń pionowo: jasność/głośność | poziomo: przewijanie', style: TextStyle(fontSize: 12, color: Colors.white60)),
+                          trailing: Switch(
+                            value: ref.watch(playerGesturesProvider),
+                            onChanged: (v) {
+                              if (v != ref.read(playerGesturesProvider)) {
+                                ref.read(playerGesturesProvider.notifier).toggle();
+                              }
+                            },
+                            activeThumbColor: Colors.red,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
                         ),
                       ]),
 

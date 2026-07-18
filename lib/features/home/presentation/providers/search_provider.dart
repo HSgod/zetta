@@ -29,10 +29,77 @@ final recommendationsProvider = FutureProvider.family<List<MediaItem>, ({String 
   return service.getRecommendations(arg.id, arg.type);
 });
 
-// Provider odkrywania treści
-final discoverProvider = FutureProvider.family<List<MediaItem>, ({MediaType type, int? genreId})>((ref, arg) async {
-  final service = ref.watch(tmdbServiceProvider);
-  return service.getDiscover(type: arg.type, genreId: arg.genreId);
+class DiscoverState {
+  final List<MediaItem> items;
+  final bool isLoading;
+  final bool hasMore;
+  final String? error;
+  
+  DiscoverState({
+    required this.items,
+    this.isLoading = false,
+    this.hasMore = true,
+    this.error,
+  });
+  
+  DiscoverState copyWith({List<MediaItem>? items, bool? isLoading, bool? hasMore, String? error}) {
+    return DiscoverState(
+      items: items ?? this.items,
+      isLoading: isLoading ?? this.isLoading,
+      hasMore: hasMore ?? this.hasMore,
+      error: error ?? this.error,
+    );
+  }
+}
+
+class DiscoverNotifier extends Notifier<DiscoverState> {
+  final ({MediaType type, int? genreId}) arg;
+  late final TmdbService _service;
+  late final MediaType _type;
+  late final int? _genreId;
+  int _page = 1;
+
+  DiscoverNotifier(this.arg);
+
+  @override
+  DiscoverState build() {
+    _service = ref.watch(tmdbServiceProvider);
+    _type = arg.type;
+    _genreId = arg.genreId;
+    _page = 1;
+    Future.microtask(() => _loadInitial());
+    return DiscoverState(items: [], isLoading: true);
+  }
+
+  Future<void> _loadInitial() async {
+    try {
+      final items = await _service.getDiscover(type: _type, genreId: _genreId, page: _page);
+      state = state.copyWith(items: items, isLoading: false, hasMore: items.isNotEmpty);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoading || !state.hasMore) return;
+    state = state.copyWith(isLoading: true);
+    try {
+      _page++;
+      final newItems = await _service.getDiscover(type: _type, genreId: _genreId, page: _page);
+      if (newItems.isEmpty) {
+        state = state.copyWith(isLoading: false, hasMore: false);
+      } else {
+        state = state.copyWith(items: [...state.items, ...newItems], isLoading: false);
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      _page--;
+    }
+  }
+}
+
+final discoverProvider = NotifierProvider.family<DiscoverNotifier, DiscoverState, ({MediaType type, int? genreId})>((arg) {
+  return DiscoverNotifier(arg);
 });
 
 // Stan wybranej kategorii (używamy Notifier dla Riverpod 3.x)

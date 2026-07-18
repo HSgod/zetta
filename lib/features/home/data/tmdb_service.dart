@@ -115,18 +115,18 @@ class TmdbService {
     }
   }
 
-  Future<List<MediaItem>> getDiscover({required MediaType type, int? genreId}) async {
+  Future<List<MediaItem>> getDiscover({required MediaType type, int? genreId, int page = 1}) async {
     final endpoint = type == MediaType.movie ? 'movie' : 'tv';
     final genreParam = genreId != null ? '&with_genres=$genreId' : '';
     
     final response = await http.get(
-      Uri.parse('$_baseUrl/discover/$endpoint?api_key=$_apiKey&language=pl-PL&sort_by=popularity.desc$genreParam&page=1'),
+      Uri.parse('$_baseUrl/discover/$endpoint?api_key=$_apiKey&language=pl-PL&sort_by=popularity.desc$genreParam&page=$page'),
     );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final List results = data['results'];
-      return results.map((json) => _mapToMediaItem(json, type: type)).take(18).toList();
+      return results.map((json) => _mapToMediaItem(json, type: type)).toList();
     } else {
       throw Exception('Failed to discover media');
     }

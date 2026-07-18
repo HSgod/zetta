@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../home/presentation/providers/search_provider.dart';
 import '../../home/presentation/widgets/explore_media_card.dart';
 
@@ -13,11 +15,57 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   late final TextEditingController _controller;
+  List<String> _searchHistory = [];
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: ref.read(searchQueryProvider));
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyJson = prefs.getString('search_history');
+    if (historyJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(historyJson);
+        if (mounted) {
+          setState(() {
+            _searchHistory = decoded.cast<String>();
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
+  Future<void> _addToHistory(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _searchHistory.remove(trimmed);
+        _searchHistory.insert(0, trimmed);
+        if (_searchHistory.length > 8) {
+          _searchHistory = _searchHistory.sublist(0, 8);
+        }
+      });
+    }
+    await prefs.setString('search_history', jsonEncode(_searchHistory));
+  }
+
+  Future<void> _removeFromHistory(String query) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _searchHistory.remove(query);
+      });
+    }
+    await prefs.setString('search_history', jsonEncode(_searchHistory));
   }
 
   @override
@@ -30,6 +78,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(searchResultsProvider);
     final query = ref.watch(searchQueryProvider);
+
+    ref.listen(searchResultsProvider, (previous, next) {
+      if (next is AsyncData && !next.isLoading) {
+        final currentQuery = ref.read(searchQueryProvider).trim();
+        if (currentQuery.isNotEmpty) {
+          _addToHistory(currentQuery);
+        }
+      }
+    });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -57,6 +114,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   child: TextField(
                     controller: _controller,
                     onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
+                    onSubmitted: (value) {
+                      if (value.trim().isNotEmpty) {
+                        _addToHistory(value.trim());
+                      }
+                    },
                     style: const TextStyle(color: Colors.white, fontSize: 15),
                     cursorColor: Colors.red,
                     decoration: InputDecoration(
@@ -156,6 +218,70 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildEmptyState() {
+    if (_searchHistory.isNotEmpty) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            const Text(
+              'Wyszukaj film lub serial',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Wpisz tytuł w pole wyszukiwania powyżej',
+              style: TextStyle(color: Colors.white38, fontSize: 14),
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'OSTATNIE WYSZUKANIA',
+              style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _searchHistory.map((historyQuery) {
+                return GestureDetector(
+                  onTap: () {
+                    _controller.text = historyQuery;
+                    ref.read(searchQueryProvider.notifier).update(historyQuery);
+                    _addToHistory(historyQuery);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.history_rounded, color: Colors.white38, size: 16),
+                        const SizedBox(width: 8),
+                        Text(historyQuery, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _removeFromHistory(historyQuery),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.close_rounded, color: Colors.white38, size: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      );
+    }
+
     const suggestions = ['Breaking Bad', 'Oppenheimer', 'Dune', 'Inception', 'The Bear'];
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -186,6 +312,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 onTap: () {
                   _controller.text = title;
                   ref.read(searchQueryProvider.notifier).update(title);
+                  _addToHistory(title);
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
