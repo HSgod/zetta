@@ -22,6 +22,7 @@ class MediaCard extends ConsumerStatefulWidget {
 class _MediaCardState extends ConsumerState<MediaCard> {
   bool _isFocused = false;
   bool _isHovered = false;
+  bool _isPressed = false;
 
   void _showContextMenu(BuildContext context, Offset globalPosition) {
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
@@ -74,104 +75,114 @@ class _MediaCardState extends ConsumerState<MediaCard> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.all(6.0),
-        child: GestureDetector(
-          child: InkWell(
-            onTap: () => context.push('/details', extra: widget.item),
-            onLongPress: widget.onLongPress,
-            hoverColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            borderRadius: BorderRadius.circular(28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: colorScheme.outlineVariant.withOpacity(0.5),
-                        width: 1,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: GestureDetector(
+            onTapDown: (_) => setState(() => _isPressed = true),
+            onTapUp: (_) => setState(() => _isPressed = false),
+            onTapCancel: () => setState(() => _isPressed = false),
+            child: InkWell(
+              onTap: () => context.push('/details', extra: widget.item),
+              onLongPress: widget.onLongPress,
+              hoverColor: Colors.transparent,
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                          width: 1,
+                        ),
+                        color: Colors.grey[950],
                       ),
-                      color: colorScheme.surfaceContainerHighest,
-                    ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        widget.item.posterUrl != null
-                            ? Image.network(
-                                widget.item.posterUrl!,
-                                fit: BoxFit.cover,
-                                cacheWidth: 300,
-                                errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
-                              )
-                            : _buildPlaceholder(colorScheme),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          widget.item.posterUrl != null
+                              ? Image.network(
+                                  widget.item.posterUrl!,
+                                  fit: BoxFit.cover,
+                                  cacheWidth: 300,
+                                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
+                                )
+                              : _buildPlaceholder(colorScheme),
 
-                        if (widget.item.rating != null && widget.item.rating! > 0)
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10, 
-                                vertical: 6
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorScheme.secondaryContainer.withOpacity(0.95),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.star_rounded, color: colorScheme.primary, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    widget.item.rating!.toStringAsFixed(1),
-                                    style: TextStyle(
-                                      color: colorScheme.onSecondaryContainer,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
+                          if (widget.item.rating != null && widget.item.rating! > 0)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, 
+                                  vertical: 4
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.item.rating!.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        if (widget.item.releaseDate != null && widget.item.releaseDate!.length >= 4)
+                          Text(
+                            widget.item.releaseDate!.substring(0, 4),
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
                             ),
                           ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.1,
-                            ),
-                      ),
-                      const SizedBox(height: 1),
-                      if (widget.item.releaseDate != null && widget.item.releaseDate!.length >= 4)
-                        Text(
-                          widget.item.releaseDate!.substring(0, 4),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -183,7 +194,7 @@ class _MediaCardState extends ConsumerState<MediaCard> {
     return Center(
       child: Icon(
         Icons.movie_filter_rounded, 
-        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+        color: Colors.white.withOpacity(0.2),
         size: 32,
       ),
     );

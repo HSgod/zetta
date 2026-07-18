@@ -140,6 +140,9 @@ class TmdbService {
       posterUrl: json['poster_path'] != null 
           ? '$_imageBaseUrl${json['poster_path']}' 
           : null,
+      backdropUrl: json['backdrop_path'] != null 
+          ? 'https://image.tmdb.org/t/p/w780${json['backdrop_path']}' 
+          : null,
       description: json['overview'] ?? '',
       rating: (json['vote_average'] as num?)?.toDouble(),
       type: isMovie ? MediaType.movie : MediaType.series,

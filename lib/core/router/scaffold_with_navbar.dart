@@ -72,7 +72,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(30),
                     child: Container(
-                      color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
+                      color: Colors.black.withOpacity(0.95),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -94,9 +94,9 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                 children: [
                   FocusTraversalGroup(
                     child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(right: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1))),
-                        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                      decoration: const BoxDecoration(
+                        border: Border(right: BorderSide(color: Colors.white10)),
+                        color: Colors.black,
                       ),
                       child: ClipRect(
                         child: BackdropFilter(
@@ -121,24 +121,27 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                                         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                                         child: Row(
                                           children: [
-                                            Image.asset(
-                                              'assets/images/logo.png',
-                                              height: 28,
-                                              errorBuilder: (context, error, stackTrace) => Icon(
-                                                Icons.movie_filter_rounded,
-                                                size: 28,
-                                                color: Theme.of(context).colorScheme.primary,
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(6),
+                                              child: Image.asset(
+                                                'assets/images/logo.png',
+                                                height: 28,
+                                                errorBuilder: (context, error, stackTrace) => Icon(
+                                                  Icons.movie_filter_rounded,
+                                                  size: 28,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
                                               ),
                                             ),
                                             if (constraints.maxWidth > 1000) ...[
                                               const SizedBox(width: 12),
-                                              Text(
+                                              const Text(
                                                 'ZETTA',
                                                 style: TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w900,
                                                   letterSpacing: 1.2,
-                                                  color: Theme.of(context).colorScheme.primary,
+                                                  color: Colors.red,
                                                 ),
                                               ),
                                             ],
@@ -171,21 +174,21 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                                         ),
                                     ],
                                   ),
-                                  unselectedIconTheme: IconThemeData(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  unselectedIconTheme: const IconThemeData(
+                                    color: Colors.white60,
                                     size: 22,
                                   ),
-                                  selectedIconTheme: IconThemeData(
-                                    color: Theme.of(context).colorScheme.primary,
+                                  selectedIconTheme: const IconThemeData(
+                                    color: Colors.red,
                                     size: 24,
                                   ),
-                                  unselectedLabelTextStyle: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  unselectedLabelTextStyle: const TextStyle(
+                                    color: Colors.white60,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
-                                  selectedLabelTextStyle: TextStyle(
-                                    color: Theme.of(context).colorScheme.primary,
+                                  selectedLabelTextStyle: const TextStyle(
+                                    color: Colors.red,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -252,8 +255,8 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
           isSelected ? selectedIcon : icon,
           size: 28,
           color: isSelected 
-              ? Theme.of(context).colorScheme.primary 
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ? Colors.red 
+              : Colors.white70,
         ),
       ),
     );
