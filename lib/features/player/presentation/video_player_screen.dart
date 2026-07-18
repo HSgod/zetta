@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:collection';
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -392,7 +389,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black.withOpacity(0.8),
+      backgroundColor: Colors.black.withValues(alpha: 0.8),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => SafeArea(
         child: Column(
@@ -594,7 +591,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         width: 120, height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.black.withOpacity(0.5),
+          color: Colors.black.withValues(alpha: 0.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -623,7 +620,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                    colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
                   ),
                 ),
                 child: Row(
@@ -655,7 +652,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+                    colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent],
                   ),
                 ),
                 child: Column(
@@ -714,8 +711,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
                 activeTrackColor: primaryColor,
                 thumbColor: primaryColor,
-                inactiveTrackColor: Colors.white.withOpacity(0.2),
-                overlayColor: primaryColor.withOpacity(0.2),
+                inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+                overlayColor: primaryColor.withValues(alpha: 0.2),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
                 trackShape: const RectangularSliderTrackShape(),
               ),
@@ -749,7 +746,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Material(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         child: InkWell(
           onTap: () {
             HapticFeedback.lightImpact();

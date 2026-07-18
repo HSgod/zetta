@@ -64,7 +64,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 ],
               ),
             ),
-            _buildCategoryGrid(),
+            SliverToBoxAdapter(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+                child: _buildCategoryGrid(),
+              ),
+            ),
           ],
         ),
       ),
@@ -151,71 +160,71 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget _buildCategoryGrid() {
     final genreId = _selectedGenreId != null ? int.tryParse(_selectedGenreId!) : null;
     final discoverData = ref.watch(discoverProvider((type: _selectedType, genreId: genreId)));
+    final key = ValueKey('$_selectedType-$_selectedGenreId');
 
     return discoverData.when(
       data: (items) {
         if (items.isEmpty) {
-          return const SliverFillRemaining(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(48),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.search_off_rounded, color: Colors.white24, size: 48),
-                    SizedBox(height: 16),
-                    Text(
-                      'Brak wyników dla wybranego gatunku',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white38, fontSize: 15),
-                    ),
-                  ],
+          return Container(
+            key: key,
+            padding: const EdgeInsets.all(48),
+            alignment: Alignment.center,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.search_off_rounded, color: Colors.white24, size: 48),
+                SizedBox(height: 16),
+                Text(
+                  'Brak wyników dla wybranego gatunku',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white38, fontSize: 15),
                 ),
-              ),
+              ],
             ),
           );
         }
-        return SliverPadding(
+        return GridView.builder(
+          key: key,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 160,
-              mainAxisSpacing: 24,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.62,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOut,
-                  builder: (context, value, child) => Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, 18 * (1 - value)),
-                      child: child,
-                    ),
-                  ),
-                  child: ExploreMediaCard(item: items[index]),
-                );
-              },
-              childCount: items.length,
-            ),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 160,
+            mainAxisSpacing: 24,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.62,
           ),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOut,
+              builder: (context, value, child) => Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 18 * (1 - value)),
+                  child: child,
+                ),
+              ),
+              child: ExploreMediaCard(item: items[index]),
+            );
+          },
         );
       },
-      loading: () => const SliverFillRemaining(
-        child: Center(
-          child: CircularProgressIndicator(color: Colors.red),
-        ),
+      loading: () => Container(
+        key: key,
+        padding: const EdgeInsets.all(48),
+        alignment: Alignment.center,
+        child: const CircularProgressIndicator(color: Colors.red),
       ),
-      error: (err, _) => SliverFillRemaining(
-        child: Center(
-          child: Text(
-            'Błąd: $err',
-            style: const TextStyle(color: Colors.red),
-          ),
+      error: (err, _) => Container(
+        key: key,
+        padding: const EdgeInsets.all(48),
+        alignment: Alignment.center,
+        child: Text(
+          'Błąd: $err',
+          style: const TextStyle(color: Colors.red),
         ),
       ),
     );

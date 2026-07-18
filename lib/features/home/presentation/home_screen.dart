@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,7 +61,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 900;
     final trendingAsync = ref.watch(trendingProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -114,19 +112,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: trendingAsync.when(
                   data: (items) {
                     if (items.isEmpty) return const SizedBox(height: 100);
-                    final index = _heroIndex % items.length;
+                    final maxItems = items.length > 5 ? 5 : items.length;
+                    final index = _heroIndex % maxItems;
                     final heroItem = items[index];
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 800),
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      ),
-                      child: _HeroBanner(
-                        key: ValueKey<String>(heroItem.id),
-                        heroItem: heroItem, 
-                        scrollOffset: _scrollOffset,
-                      ),
+                    return Stack(
+                      children: [
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 800),
+                          transitionBuilder: (child, animation) => FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          ),
+                          child: _HeroBanner(
+                            key: ValueKey<String>(heroItem.id),
+                            heroItem: heroItem, 
+                            scrollOffset: _scrollOffset,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 90,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (int i = 0; i < maxItems; i++) ...[
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: i == index ? 20 : 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: i == index ? Colors.white : Colors.white38,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                if (i < maxItems - 1) const SizedBox(width: 4),
+                              ]
+                            ],
+                          ),
+                        ),
+                      ],
                     );
                   },
                   loading: () => _BannerShimmer(),
@@ -198,6 +223,16 @@ class _HeroBanner extends StatelessWidget {
     required this.scrollOffset,
   });
 
+  bool _isNew(String? releaseDate) {
+    if (releaseDate == null || releaseDate.isEmpty) return false;
+    try {
+      final date = DateTime.parse(releaseDate);
+      return DateTime.now().difference(date).inDays < 180;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -242,10 +277,10 @@ class _HeroBanner extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.65),
+                    Colors.black.withValues(alpha: 0.65),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.4),
-                    Colors.black.withOpacity(0.85),
+                    Colors.black.withValues(alpha: 0.4),
+                    Colors.black.withValues(alpha: 0.85),
                     Colors.black,
                   ],
                   stops: const [0.0, 0.3, 0.6, 0.85, 1.0],
@@ -267,23 +302,25 @@ class _HeroBanner extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade700,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'N O W O Ś Ć',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
+                    if (_isNew(heroItem.releaseDate)) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade700,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'N O W O Ś Ć',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
+                    ],
                     Text(
                       heroItem.type == MediaType.movie ? 'FILM' : 'SERIAL',
                       style: const TextStyle(
@@ -372,7 +409,7 @@ class _HeroBanner extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 14,
                         height: 1.3,
                         shadows: const [
@@ -413,14 +450,35 @@ class _HeroBanner extends StatelessWidget {
   }
 }
 
-class _BannerShimmer extends StatelessWidget {
+class _BannerShimmer extends StatefulWidget {
+  @override
+  State<_BannerShimmer> createState() => _BannerShimmerState();
+}
+
+class _BannerShimmerState extends State<_BannerShimmer> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: -1.0, end: 2.0),
-      duration: const Duration(milliseconds: 1400),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final value = -1.0 + (_controller.value * 3.0);
         return Container(
           height: 520,
           width: double.infinity,
@@ -441,60 +499,80 @@ class _BannerShimmer extends StatelessWidget {
   }
 }
 
-class _SectionShimmer extends StatelessWidget {
+class _SectionShimmer extends StatefulWidget {
+  @override
+  State<_SectionShimmer> createState() => _SectionShimmerState();
+}
+
+class _SectionShimmerState extends State<_SectionShimmer> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Fake section title bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: -1.0, end: 2.0),
-            duration: const Duration(milliseconds: 1200),
-            builder: (_, v, __) => Container(
-              height: 18,
-              width: 160,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                gradient: LinearGradient(
-                  begin: Alignment(v - 1, 0),
-                  end: Alignment(v, 0),
-                  colors: [Colors.grey[900]!, Colors.grey[800]!, Colors.grey[900]!],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final value = -1.0 + (_controller.value * 3.0);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fake section title bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+              child: Container(
+                height: 18,
+                width: 160,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  gradient: LinearGradient(
+                    begin: Alignment(value - 1, 0),
+                    end: Alignment(value, 0),
+                    colors: [Colors.grey[900]!, Colors.grey[800]!, Colors.grey[900]!],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-        SizedBox(
-          height: 270,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: 5,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) {
-              return TweenAnimationBuilder<double>(
-                tween: Tween(begin: -1.0, end: 2.0),
-                duration: Duration(milliseconds: 1200 + i * 80),
-                builder: (_, v, __) => Container(
-                  width: 150,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment(v - 1, 0),
-                      end: Alignment(v, 0),
-                      colors: [Colors.grey[900]!, Colors.grey[850]!, Colors.grey[900]!],
+            SizedBox(
+              height: 270,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: 5,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, i) {
+                  return Container(
+                    width: 150,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        begin: Alignment(value - 1, 0),
+                        end: Alignment(value, 0),
+                        colors: [Colors.grey[900]!, Colors.grey[850]!, Colors.grey[900]!],
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

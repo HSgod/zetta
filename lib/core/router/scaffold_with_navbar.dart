@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,17 +70,17 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(32),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.white.withValues(alpha: 0.12),
                           width: 1.0,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withValues(alpha: 0.4),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),
                           BoxShadow(
-                            color: Colors.red.withOpacity(0.08),
+                            color: Colors.red.withValues(alpha: 0.08),
                             blurRadius: 20,
                             spreadRadius: -2,
                             offset: const Offset(0, 4),
@@ -93,7 +92,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                           child: Container(
-                            color: Colors.black.withOpacity(0.55),
+                            color: Colors.black.withValues(alpha: 0.55),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -182,7 +181,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                                                   hintStyle: const TextStyle(fontSize: 13),
                                                   prefixIcon: const Icon(Icons.search, size: 18),
                                                   filled: true,
-                                                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                                                   border: OutlineInputBorder(
                                                     borderRadius: BorderRadius.circular(10),
@@ -279,11 +278,11 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.red.withOpacity(0.12)
+              ? Colors.red.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.red.withOpacity(0.25) : Colors.transparent,
+            color: isSelected ? Colors.red.withValues(alpha: 0.25) : Colors.transparent,
             width: 1.0,
           ),
         ),
@@ -293,15 +292,15 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
             Icon(
               isSelected ? selectedIcon : icon,
               size: 22,
-              color: isSelected ? Colors.red : Colors.white.withOpacity(0.6),
+              color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.red : Colors.white.withOpacity(0.45),
+                color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.45),
                 letterSpacing: 0.2,
               ),
             ),

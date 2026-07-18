@@ -32,12 +32,12 @@ class _ExploreMediaCardState extends State<ExploreMediaCard> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   width: 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -47,14 +47,17 @@ class _ExploreMediaCardState extends State<ExploreMediaCard> {
                 fit: StackFit.expand,
                 children: [
                   // Image
-                  widget.item.posterUrl != null
-                      ? Image.network(
-                          widget.item.posterUrl!,
-                          fit: BoxFit.cover,
-                          cacheWidth: 300,
-                          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-                        )
-                      : _buildPlaceholder(),
+                  Hero(
+                    tag: 'poster-${widget.item.id}',
+                    child: widget.item.posterUrl != null
+                        ? Image.network(
+                            widget.item.posterUrl!,
+                            fit: BoxFit.cover,
+                            cacheWidth: 300,
+                            errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                          )
+                        : _buildPlaceholder(),
+                  ),
 
                   // Bottom dark gradient overlay
                   Positioned.fill(
@@ -65,9 +68,9 @@ class _ExploreMediaCardState extends State<ExploreMediaCard> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Colors.black.withOpacity(0.1),
-                            Colors.black.withOpacity(0.7),
-                            Colors.black.withOpacity(0.95),
+                            Colors.black.withValues(alpha: 0.1),
+                            Colors.black.withValues(alpha: 0.7),
+                            Colors.black.withValues(alpha: 0.95),
                           ],
                           stops: const [0.0, 0.4, 0.75, 1.0],
                         ),
@@ -82,11 +85,11 @@ class _ExploreMediaCardState extends State<ExploreMediaCard> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.9),
+                        color: Colors.red.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(6),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.red.withOpacity(0.3),
+                            color: Colors.red.withValues(alpha: 0.3),
                             blurRadius: 4,
                             spreadRadius: 1,
                           ),
@@ -112,10 +115,10 @@ class _ExploreMediaCardState extends State<ExploreMediaCard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.85),
+                          color: Colors.black.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: Colors.amber.withOpacity(0.4),
+                            color: Colors.amber.withValues(alpha: 0.4),
                             width: 0.5,
                           ),
                         ),
@@ -190,7 +193,7 @@ class _ExploreMediaCardState extends State<ExploreMediaCard> {
     return Center(
       child: Icon(
         Icons.movie_filter_rounded,
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         size: 32,
       ),
     );

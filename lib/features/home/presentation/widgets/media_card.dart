@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/media_item.dart';
-import '../../../library/presentation/providers/library_provider.dart';
 
 class MediaCard extends ConsumerStatefulWidget {
   final MediaItem item;
@@ -20,55 +18,7 @@ class MediaCard extends ConsumerStatefulWidget {
 }
 
 class _MediaCardState extends ConsumerState<MediaCard> {
-  bool _isFocused = false;
-  bool _isHovered = false;
   bool _isPressed = false;
-
-  void _showContextMenu(BuildContext context, Offset globalPosition) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final localOffset = overlay.globalToLocal(globalPosition);
-    final favorites = ref.read(favoritesProvider);
-    final isFavorite = favorites.any((i) => i.id == widget.item.id);
-
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        localOffset.dx,
-        localOffset.dy,
-        localOffset.dx,
-        localOffset.dy,
-      ),
-      items: [
-        PopupMenuItem(
-          onTap: () => context.push('/details', extra: widget.item),
-          child: const ListTile(
-            leading: Icon(Icons.info_outline, size: 20),
-            title: Text('Szczegóły', style: TextStyle(fontSize: 14)),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-          ),
-        ),
-        PopupMenuItem(
-          onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
-          child: ListTile(
-            leading: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border, 
-              color: isFavorite ? Colors.red : null,
-              size: 20,
-            ),
-            title: Text(
-              isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych', 
-              style: const TextStyle(fontSize: 14)
-            ),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-          ),
-        ),
-      ],
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +50,7 @@ class _MediaCardState extends ConsumerState<MediaCard> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           width: 1,
                         ),
                         color: Colors.grey[950],
@@ -108,14 +58,17 @@ class _MediaCardState extends ConsumerState<MediaCard> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          widget.item.posterUrl != null
-                              ? Image.network(
-                                  widget.item.posterUrl!,
-                                  fit: BoxFit.cover,
-                                  cacheWidth: 300,
-                                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
-                                )
-                              : _buildPlaceholder(colorScheme),
+                          Hero(
+                            tag: 'poster-${widget.item.id}',
+                            child: widget.item.posterUrl != null
+                                ? Image.network(
+                                    widget.item.posterUrl!,
+                                    fit: BoxFit.cover,
+                                    cacheWidth: 300,
+                                    errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colorScheme),
+                                  )
+                                : _buildPlaceholder(colorScheme),
+                          ),
 
                           if (widget.item.rating != null && widget.item.rating! > 0)
                             Positioned(
@@ -127,7 +80,7 @@ class _MediaCardState extends ConsumerState<MediaCard> {
                                   vertical: 4
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.8),
+                                  color: Colors.black.withValues(alpha: 0.8),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -194,7 +147,7 @@ class _MediaCardState extends ConsumerState<MediaCard> {
     return Center(
       child: Icon(
         Icons.movie_filter_rounded, 
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         size: 32,
       ),
     );

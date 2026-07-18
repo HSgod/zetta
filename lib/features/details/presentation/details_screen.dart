@@ -1,4 +1,4 @@
-import 'dart:io';
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/scraper/scraper_service.dart';
 import '../../../core/scraper/base_scraper.dart';
 import '../../../core/scraper/scraper_settings_provider.dart';
-import '../../../core/theme/theme_provider.dart';
+
 import '../../home/domain/media_item.dart';
 import '../../home/domain/episode.dart';
 import '../../home/data/tmdb_service.dart';
@@ -39,11 +39,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   int? _selectedEpisode;
   List<Episode>? _episodes;
   int _totalSeasons = 0;
-  bool _isLoadingTV = false;
   String? _trailerKey;
-  bool _isLoadingTrailer = false;
   List<Map<String, dynamic>>? _cast;
-  bool _isLoadingCast = false;
   final Map<String, String> _scraperProgress = {};
 
   @override
@@ -59,47 +56,38 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   Future<void> _loadCredits() async {
-    setState(() => _isLoadingCast = true);
     try {
       final credits = await ref.read(tmdbServiceProvider).getCredits(widget.item.id, widget.item.type);
       if (mounted) {
         setState(() {
           _cast = credits;
-          _isLoadingCast = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoadingCast = false);
     }
   }
 
   Future<void> _loadTrailer() async {
-    setState(() => _isLoadingTrailer = true);
     try {
       final key = await ref.read(tmdbServiceProvider).getTrailerKey(widget.item.id, widget.item.type);
       if (mounted) {
         setState(() {
           _trailerKey = key;
-          _isLoadingTrailer = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoadingTrailer = false);
     }
   }
 
   Future<void> _loadTVDetails() async {
-    setState(() => _isLoadingTV = true);
     try {
       final details = await ref.read(tmdbServiceProvider).getTVDetails(widget.item.id);
       if (mounted) {
         setState(() {
           _totalSeasons = details['number_of_seasons'] ?? 0;
-          _isLoadingTV = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoadingTV = false);
     }
   }
 
@@ -253,7 +241,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              color: Colors.black.withOpacity(0.75),
+              color: Colors.black.withValues(alpha: 0.75),
             ),
           ),
         ),
@@ -264,8 +252,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: [
-                Colors.black.withOpacity(0.8),
-                Colors.black.withOpacity(0.4),
+                Colors.black.withValues(alpha: 0.8),
+                Colors.black.withValues(alpha: 0.4),
               ],
             ),
           ),
@@ -291,7 +279,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         blurRadius: 30,
                         spreadRadius: 5,
                       ),
@@ -456,7 +444,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -469,9 +457,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.12),
+                  color: Colors.amber.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.amber.withOpacity(0.3), width: 1),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3), width: 1),
                 ),
                 child: Row(
                   children: [
@@ -489,9 +477,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.12),
+                color: Colors.red.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.red.withOpacity(0.3), width: 1),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3), width: 1),
               ),
               child: Text(
                 widget.item.type == MediaType.movie ? 'FILM' : 'SERIAL',
@@ -507,11 +495,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget _buildDescription() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10), width: 1),
       ),
       child: Text(
         widget.item.description ?? "Brak opisu", 
@@ -555,9 +543,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.1),
+        color: Colors.redAccent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -646,7 +634,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.06),
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected ? Colors.white : Colors.white10,
@@ -691,7 +679,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.red : Colors.white.withOpacity(0.06),
+                  color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected ? Colors.red : Colors.white10,
@@ -735,13 +723,13 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isSuggested 
-            ? Colors.green.withOpacity(0.06) 
-            : Colors.white.withOpacity(0.03),
+            ? Colors.green.withValues(alpha: 0.06) 
+            : Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSuggested 
-              ? Colors.greenAccent.withOpacity(0.4) 
-              : Colors.white.withOpacity(0.08),
+              ? Colors.greenAccent.withValues(alpha: 0.4) 
+              : Colors.white.withValues(alpha: 0.08),
           width: 1.0,
         ),
       ),
@@ -752,8 +740,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           height: 36,
           decoration: BoxDecoration(
             color: isSuggested 
-                ? Colors.greenAccent.withOpacity(0.1) 
-                : Colors.red.withOpacity(0.1),
+                ? Colors.greenAccent.withValues(alpha: 0.1) 
+                : Colors.red.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -777,7 +765,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -826,7 +814,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.greenAccent.withOpacity(0.15),
+                  color: Colors.greenAccent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
@@ -868,9 +856,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       width: double.infinity,
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.08),
+        color: Colors.red.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withOpacity(0.3), width: 1.0),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3), width: 1.0),
       ),
       child: Material(
         color: Colors.transparent,
@@ -921,37 +909,51 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             itemCount: _cast!.length,
             itemBuilder: (context, index) {
               final actor = _cast![index];
-              return Container(
-                width: 80,
-                margin: const EdgeInsets.only(right: 12),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white.withOpacity(0.08),
-                      backgroundImage: actor['profileUrl'] != null 
-                          ? NetworkImage(actor['profileUrl']) 
-                          : null,
-                      child: actor['profileUrl'] == null 
-                          ? const Icon(Icons.person, color: Colors.white54, size: 24)
-                          : null,
+              return TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: Duration(milliseconds: 300 + index * 50),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(15 * (1 - value), 0),
+                      child: child,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      actor['name'],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      actor['character'],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white38, fontSize: 9),
-                    ),
-                  ],
+                  );
+                },
+                child: Container(
+                  width: 80,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.white.withValues(alpha: 0.08),
+                        backgroundImage: actor['profileUrl'] != null 
+                            ? NetworkImage(actor['profileUrl']) 
+                            : null,
+                        child: actor['profileUrl'] == null 
+                            ? const Icon(Icons.person, color: Colors.white54, size: 24)
+                            : null,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        actor['name'],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        actor['character'],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -966,9 +968,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: Colors.white.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.0),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

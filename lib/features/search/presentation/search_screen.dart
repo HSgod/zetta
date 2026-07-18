@@ -107,7 +107,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               itemBuilder: (context, index) {
                                 return TweenAnimationBuilder<double>(
                                   tween: Tween(begin: 0.0, end: 1.0),
-                                  duration: const Duration(milliseconds: 350),
+                                  duration: Duration(milliseconds: 300 + (index.clamp(0, 8) * 40)),
                                   curve: Curves.easeOut,
                                   builder: (context, value, child) => Opacity(
                                     opacity: value,

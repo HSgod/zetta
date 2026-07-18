@@ -56,6 +56,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 56, height: 56,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(colors: [Color(0xFFB71C1C), Color(0xFF7F0000)]),
+                              ),
+                              child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
+                            ),
+                            const SizedBox(width: 16),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Zetta', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                                Text('v1.0.6', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                       _buildSectionHeader('Źródła'),
                       _buildSettingsCard([
                         _buildListTile(
@@ -82,7 +105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         _buildListTile(
                           title: 'Zetta v1.0.6',
                           subtitle: 'Wersja stabilna',
-                          icon: Icons.verified_user_rounded,
+                          icon: Icons.info_outline_rounded,
                         ),
                         _buildListTile(
                           title: 'Postaw mi kawę ☕',
@@ -138,9 +161,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[950],
+        gradient: LinearGradient(
+          colors: [Colors.grey[900]!, Colors.grey[950]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(children: children),
     );

@@ -17,14 +17,17 @@ class LibraryScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Usuń?'),
-        content: Text('Czy chcesz usunąć "$title"?'),
+        backgroundColor: Colors.grey[950],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Usuń?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text('Czy chcesz usunąć "$title"?', style: const TextStyle(color: Colors.white60)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Anuluj'),
+            child: const Text('Anuluj', style: TextStyle(color: Colors.white54)),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               if (listType == 'continue') {
                 ref.read(continueWatchingProvider.notifier).removeFromContinue(item.id);
@@ -37,7 +40,7 @@ class LibraryScreen extends ConsumerWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('Usuń'),
+            child: const Text('Usuń', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
