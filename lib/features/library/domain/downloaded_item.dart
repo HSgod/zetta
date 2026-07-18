@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../home/domain/media_item.dart';
 
 class DownloadedItem {

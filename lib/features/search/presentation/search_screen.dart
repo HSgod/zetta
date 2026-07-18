@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../home/presentation/providers/search_provider.dart';
-import '../../home/presentation/widgets/media_card.dart';
 import '../../home/presentation/widgets/explore_media_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -51,7 +50,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     color: Colors.grey[950],
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha: 0.08),
                       width: 1.0,
                     ),
                   ),
@@ -106,7 +105,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                               itemCount: items.length,
                               itemBuilder: (context, index) {
-                                return ExploreMediaCard(item: items[index]);
+                                return TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0.0, end: 1.0),
+                                  duration: const Duration(milliseconds: 350),
+                                  curve: Curves.easeOut,
+                                  builder: (context, value, child) => Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, 20 * (1 - value)),
+                                      child: child,
+                                    ),
+                                  ),
+                                  child: ExploreMediaCard(item: items[index]),
+                                );
                               },
                             ),
                           );
@@ -124,7 +135,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 'To może chwilę potrwać',
-                                style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
                               ),
                             ],
                           ),
@@ -181,7 +192,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey[900],
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

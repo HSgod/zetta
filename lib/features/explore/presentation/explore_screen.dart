@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../home/domain/media_item.dart';
 import '../../home/presentation/providers/search_provider.dart';
-import '../../home/presentation/widgets/media_card.dart';
 import '../../home/presentation/widgets/explore_media_card.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -62,7 +59,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     height: 1, 
                     indent: 20, 
                     endIndent: 20, 
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ],
               ),
@@ -131,7 +128,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   color: isSelected ? Colors.red : Colors.grey[950],
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? Colors.red : Colors.white.withOpacity(0.08),
+                    color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.08),
                     width: 1.0,
                   ),
                 ),
@@ -188,7 +185,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               childAspectRatio: 0.62,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, index) => ExploreMediaCard(item: items[index]),
+              (context, index) {
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOut,
+                  builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 18 * (1 - value)),
+                      child: child,
+                    ),
+                  ),
+                  child: ExploreMediaCard(item: items[index]),
+                );
+              },
               childCount: items.length,
             ),
           ),
@@ -234,7 +245,7 @@ class _TypeChip extends StatelessWidget {
           color: isSelected ? Colors.red : Colors.grey[900],
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.red : Colors.white.withOpacity(0.08),
+            color: isSelected ? Colors.red : Colors.white.withValues(alpha: 0.08),
             width: 1.0,
           ),
         ),

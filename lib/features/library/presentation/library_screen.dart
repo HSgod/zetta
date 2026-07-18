@@ -6,8 +6,6 @@ import 'providers/library_provider.dart';
 import 'providers/download_provider.dart';
 import '../../home/presentation/widgets/media_card.dart';
 import '../../home/domain/media_item.dart';
-import '../../player/presentation/player_args.dart';
-import '../../player/presentation/video_player_screen.dart';
 import 'downloads_list_screen.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -134,9 +132,9 @@ class LibraryScreen extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.08),
+              color: Colors.red.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.red.withOpacity(0.2)),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
@@ -157,7 +155,7 @@ class LibraryScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.4)),
+                Icon(Icons.chevron_right_rounded, color: Colors.white.withValues(alpha: 0.4)),
               ],
             ),
           ),
@@ -189,57 +187,66 @@ class LibraryScreen extends ConsumerWidget {
               ),
             ),
           ),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.grey[950],
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, color: Colors.white24, size: 32),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        emptyMessage,
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            SizedBox(
-              height: 280,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: items.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final isResume = title == 'Kontynuuj oglądanie';
-                  return SizedBox(
-                    width: 150,
-                    child: isResume
-                        ? _ProgressCard(item: item, onLongPress: onLongPress != null ? () => onLongPress(item) : null)
-                        : MediaCard(
-                            item: item,
-                            onLongPress: onLongPress != null ? () => onLongPress(item) : null,
-                          ),
-                  );
-                },
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SizeTransition(
+                sizeFactor: animation,
+                alignment: Alignment.topCenter,
+                child: child,
               ),
             ),
+            child: items.isEmpty
+              ? Padding(
+                  key: ValueKey('empty_$title'),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[950],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, color: Colors.white24, size: 32),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            emptyMessage,
+                            style: const TextStyle(color: Colors.white38, fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SizedBox(
+                  key: ValueKey('list_$title${items.length}'),
+                  height: 280,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: items.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final isResume = title == 'Kontynuuj oglądanie';
+                      return SizedBox(
+                        width: 150,
+                        child: isResume
+                            ? _ProgressCard(item: item, onLongPress: onLongPress != null ? () => onLongPress(item) : null)
+                            : MediaCard(
+                                item: item,
+                                onLongPress: onLongPress != null ? () => onLongPress(item) : null,
+                              ),
+                      );
+                    },
+                  ),
+                ),
+          ),
         ],
       ),
     );

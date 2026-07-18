@@ -441,7 +441,66 @@ class _BannerShimmer extends StatelessWidget {
   }
 }
 
+class _SectionShimmer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Fake section title bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: -1.0, end: 2.0),
+            duration: const Duration(milliseconds: 1200),
+            builder: (_, v, __) => Container(
+              height: 18,
+              width: 160,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                gradient: LinearGradient(
+                  begin: Alignment(v - 1, 0),
+                  end: Alignment(v, 0),
+                  colors: [Colors.grey[900]!, Colors.grey[800]!, Colors.grey[900]!],
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 270,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: 5,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              return TweenAnimationBuilder<double>(
+                tween: Tween(begin: -1.0, end: 2.0),
+                duration: Duration(milliseconds: 1200 + i * 80),
+                builder: (_, v, __) => Container(
+                  width: 150,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment(v - 1, 0),
+                      end: Alignment(v, 0),
+                      colors: [Colors.grey[900]!, Colors.grey[850]!, Colors.grey[900]!],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AnimatedPlayButton extends StatefulWidget {
+
   final VoidCallback onPressed;
   const _AnimatedPlayButton({required this.onPressed});
 
@@ -509,10 +568,7 @@ class _MediaSectionWithProvider extends ConsumerWidget {
         if (items.isEmpty) return const SizedBox.shrink();
         return _MediaSection(title: title, items: items);
       },
-      loading: () => const SizedBox(
-        height: 180,
-        child: Center(child: CircularProgressIndicator(color: Colors.red)),
-      ),
+      loading: () => _SectionShimmer(),
       error: (err, stack) => const SizedBox.shrink(),
     );
   }

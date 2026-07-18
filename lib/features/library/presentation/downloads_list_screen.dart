@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../presentation/providers/download_provider.dart';
 import '../../player/presentation/player_args.dart';
 import '../../player/presentation/video_player_screen.dart';
@@ -46,7 +45,7 @@ class DownloadsListScreen extends ConsumerWidget {
                     Icon(
                       Icons.download_for_offline_rounded,
                       size: 64,
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -70,7 +69,7 @@ class DownloadsListScreen extends ConsumerWidget {
                       color: Colors.grey[950],
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.06),
+                        color: Colors.white.withValues(alpha: 0.06),
                         width: 1.0,
                       ),
                     ),
@@ -91,7 +90,7 @@ class DownloadsListScreen extends ConsumerWidget {
                             : Container(
                                 width: 45,
                                 height: 70,
-                                color: Colors.white.withOpacity(0.05),
+                                color: Colors.white.withValues(alpha: 0.05),
                                 child: const Icon(Icons.movie_rounded, color: Colors.white24, size: 20),
                               ),
                       ),
@@ -116,7 +115,7 @@ class DownloadsListScreen extends ConsumerWidget {
                               child: LinearProgressIndicator(
                                 value: item.progress / 100,
                                 color: Colors.red,
-                                backgroundColor: Colors.white.withOpacity(0.05),
+                                backgroundColor: Colors.white.withValues(alpha: 0.05),
                                 minHeight: 4,
                               ),
                             )
@@ -126,9 +125,9 @@ class DownloadsListScreen extends ConsumerWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.08),
+                                    color: Colors.green.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.green.withOpacity(0.2), width: 0.5),
+                                    border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 0.5),
                                   ),
                                   child: const Text(
                                     'Gotowe do oglądania',

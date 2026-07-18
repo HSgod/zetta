@@ -6,11 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../../home/domain/media_item.dart';
 import '../../domain/downloaded_item.dart';
-import '../../presentation/providers/library_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 
 class DownloadNotifier extends Notifier<List<DownloadedItem>> {

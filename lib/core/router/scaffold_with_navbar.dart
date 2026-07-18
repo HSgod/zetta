@@ -66,7 +66,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                   child: SafeArea(
                     top: false,
                     child: Container(
-                      height: 64,
+                      height: 70,
                       margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(32),
@@ -97,11 +97,11 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded),
-                                _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded),
-                                _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded),
-                                _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded),
-                                _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded),
+                                _buildNavItem(context, 0, Icons.home_outlined, Icons.home_rounded, 'Dom'),
+                                _buildNavItem(context, 1, Icons.search_outlined, Icons.search_rounded, 'Szukaj'),
+                                _buildNavItem(context, 2, Icons.explore_outlined, Icons.explore_rounded, 'Odkrywaj'),
+                                _buildNavItem(context, 3, Icons.video_library_outlined, Icons.video_library_rounded, 'Biblioteka'),
+                                _buildNavItem(context, 4, Icons.settings_outlined, Icons.settings_rounded, 'Ustawienia'),
                               ],
                             ),
                           ),
@@ -265,7 +265,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData selectedIcon) {
+  Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData selectedIcon, String label) {
     final isSelected = widget.navigationShell.currentIndex == index;
     return InkWell(
       onTap: () => _onTap(context, index),
@@ -276,10 +276,10 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? Colors.red.withOpacity(0.12) 
+          color: isSelected
+              ? Colors.red.withOpacity(0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -287,12 +287,25 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
             width: 1.0,
           ),
         ),
-        child: Icon(
-          isSelected ? selectedIcon : icon,
-          size: 24,
-          color: isSelected 
-              ? Colors.red 
-              : Colors.white.withOpacity(0.6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? selectedIcon : icon,
+              size: 22,
+              color: isSelected ? Colors.red : Colors.white.withOpacity(0.6),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.red : Colors.white.withOpacity(0.45),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
       ),
     );
