@@ -1,9 +1,10 @@
+import 'package:flutter/material.dart';
 import '../../features/home/domain/media_item.dart';
 
 abstract class BaseScraper {
   String get name;
-  Future<List<SearchResult>> search(String title, MediaType type);
-  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode});
+  Future<List<SearchResult>> search(String title, MediaType type, {BuildContext? context});
+  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode, BuildContext? context});
 }
 
 class SearchResult {

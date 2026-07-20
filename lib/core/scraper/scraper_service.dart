@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/home/domain/media_item.dart';
 import 'base_scraper.dart';
@@ -18,14 +18,14 @@ class ScraperService {
 
   ScraperService(this._ref);
 
-  Future<bool> isAvailable(String title, MediaType type) async {
+  Future<bool> isAvailable(String title, MediaType type, {BuildContext? context}) async {
     String cleanTitle = title.split(':').first.split('-').first.trim().toLowerCase();
     
     if (_scrapers.isEmpty) return false;
 
     final List<Future<bool>> checks = _scrapers.map((scraper) async {
       try {
-        final searchResults = await scraper.search(cleanTitle, type).timeout(const Duration(seconds: 8));
+        final searchResults = await scraper.search(cleanTitle, type, context: context).timeout(const Duration(seconds: 30));
         return searchResults.any((r) => r.title.toLowerCase().contains(cleanTitle));
       } catch (e) {
         return false;
@@ -55,6 +55,7 @@ class ScraperService {
     MediaType type, {
     int? season, 
     int? episode,
+    BuildContext? context,
     void Function(String scraperName, String status)? onProgress,
   }) async {
     final settingsValue = await _ref.read(scraperSettingsProvider.future);
@@ -76,7 +77,7 @@ class ScraperService {
       onProgress?.call(scraper.name, 'szukanie');
       try {
         final sources = await (() async {
-          final searchResults = await scraper.search(query, type);
+          final searchResults = await scraper.search(query, type, context: context);
           
           if (searchResults.isNotEmpty) {
             String normalize(String text) => text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s]'), '').trim();
@@ -97,10 +98,10 @@ class ScraperService {
             matches.sort((a, b) => a.title.length.compareTo(b.title.length));
             final bestMatch = matches.first;
 
-            return await scraper.getSources(bestMatch, season: season, episode: episode);
+            return await scraper.getSources(bestMatch, season: season, episode: episode, context: context);
           }
           return <VideoSource>[];
-        })().timeout(const Duration(seconds: 12));
+        })().timeout(const Duration(seconds: 60));
         
         onProgress?.call(scraper.name, sources.isNotEmpty ? 'znaleziono' : 'brak');
         return sources;

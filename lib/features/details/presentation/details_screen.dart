@@ -42,6 +42,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   String? _trailerKey;
   List<Map<String, dynamic>>? _cast;
   final Map<String, String> _scraperProgress = {};
+  BuildContext? _savedContext;
 
   @override
   void initState() {
@@ -51,7 +52,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     if (widget.item.type == MediaType.series) {
       _loadTVDetails();
     } else {
-      _fetchSources();
+      // Opóźnienie do po pierwszym build() żeby _savedContext był dostępny
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fetchSources();
+      });
     }
   }
 
@@ -121,6 +125,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         widget.item.type,
         season: season,
         episode: episode,
+        context: _savedContext,
         onProgress: (scraperName, status) {
           if (mounted) {
             setState(() {
@@ -147,6 +152,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _savedContext = context;
     final isFavorite = ref.watch(favoritesProvider).any((i) => i.id == widget.item.id);
     
     // Klucz do zapisanego źródła (uwzględnia sezon i odcinek dla seriali)

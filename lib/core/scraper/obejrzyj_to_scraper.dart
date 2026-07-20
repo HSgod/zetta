@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'base_scraper.dart';
 import '../../features/home/domain/media_item.dart';
@@ -18,7 +19,7 @@ class ObejrzyjToScraper extends BaseScraper {
   };
 
   @override
-  Future<List<SearchResult>> search(String title, MediaType type) async {
+  Future<List<SearchResult>> search(String title, MediaType type, {BuildContext? context}) async {
     final cleanTitle = title.split(' (').first.split(':').first.trim();
     final searchUrl = '$_baseUrl/search/${Uri.encodeComponent(cleanTitle.toLowerCase())}';
     
@@ -59,7 +60,7 @@ class ObejrzyjToScraper extends BaseScraper {
   }
 
   @override
-  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode}) async {
+  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode, BuildContext? context}) async {
     String targetUrl = result.url;
 
     try {

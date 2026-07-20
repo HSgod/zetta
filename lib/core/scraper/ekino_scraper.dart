@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import '../../features/home/domain/media_item.dart';
@@ -17,7 +17,7 @@ class EkinoScraper extends BaseScraper {
   };
 
   @override
-  Future<List<SearchResult>> search(String title, MediaType type) async {
+  Future<List<SearchResult>> search(String title, MediaType type, {BuildContext? context}) async {
     final cleanQuery = Uri.encodeComponent(title);
     final searchUrl = '$_baseUrl/search/qf/?q=$cleanQuery';
     
@@ -52,7 +52,7 @@ class EkinoScraper extends BaseScraper {
   }
 
   @override
-  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode}) async {
+  Future<List<VideoSource>> getSources(SearchResult result, {int? season, int? episode, BuildContext? context}) async {
     String originalUrl = result.url;
     String fetchUrl = originalUrl;
     
